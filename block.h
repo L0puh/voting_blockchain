@@ -4,12 +4,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
-#include "libs/SHA256.h"
+#include <sstream>
+#include <openssl/sha.h>
+#include <cstring>
+#include <ctime>
+
 
 struct header_t {
     std::string prev_hash;
     std::string timestamp;
-    int nonce; 
+    std::string nonce; 
     std::string hash;
 };
 
@@ -19,18 +23,24 @@ struct Block_t {
 };
 
 class Hash {
-    SHA256 sha;
     public:
         std::string create_hash(std::string data);
-
+        std::string get_nonce(std::string blockHash, uint8_t difficulty);
 };
 
 class Block : public Hash {  
-        Block_t block;
+    private:
+        Block_t block; 
+        uint8_t difficulty;
     public:
-        void init_block();
+        Block(uint8_t difficulty);
+        Block();
+    public:
+        std::string block_to_string(Block_t block);
+    public:
+        char* get_timestamp();
+        void init_block(std::string prev_hash, uint8_t res);
         void link_block();
-        // validate_block();
 };
 
 
