@@ -1,13 +1,14 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string>
+#include <stdlib.h>
 #include <sstream>
+#include <string>
 #include <openssl/sha.h>
 #include <cstring>
 #include <ctime>
+#include <vector>
 
 
 struct header_t {
@@ -18,7 +19,7 @@ struct header_t {
 };
 
 struct Block_t {
-    header_t header;
+    struct header_t header;
     uint8_t result;
 };
 
@@ -38,11 +39,9 @@ class Block : public Hash {
     public:
         std::string block_to_string(Block_t block);
     public:
-        char* get_timestamp();
-        void init_block(std::string prev_hash, uint8_t res);
-        void link_block();
+        uint32_t get_timestamp();
+        Block_t init_block(std::string prev_hash, uint8_t res);
+        void link_block(std::vector<Block_t> *blockchain, Block_t block);
 };
-
-
 
 #endif 

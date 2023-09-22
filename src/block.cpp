@@ -1,6 +1,4 @@
 #include "block.h"
-#include <cstdlib>
-
 
 std::string Hash::get_nonce(std::string blockHash, uint8_t difficulty){
     std::string target = "";
@@ -40,35 +38,33 @@ std::string Hash::create_hash(std::string data) {
     return hashStr;
 }
 
-char* Block::get_timestamp() {
+uint32_t Block::get_timestamp() {
     time_t t = time(0);
-    char* dt = std::ctime(&t);
-    return dt;
+    return t;
 }
 
 std::string Block::block_to_string(Block_t block) {
     std::string data = block.header.prev_hash + 
-        block.header.timestamp + (char)block.result 
-        + block.header.nonce;
+        block.header.timestamp + (char)block.result;
     return data;
 }
 
-
-
-void Block::init_block(std::string prev_hash, uint8_t res) {
-   block.header.prev_hash = prev_hash;
-   block.header.timestamp = get_timestamp();
-   block.result = res;
-   block.header.hash = create_hash(block_to_string(block));
-   block.header.nonce = get_nonce(block.header.hash, difficulty); 
+void Block::link_block(std::vector<Block_t> *blockchain, Block_t block) {
+    blockchain->push_back(block);
 }
 
-void Block::link_block() {
-
+Block_t Block::init_block(std::string prev_hash, uint8_t res) {
+   block.header.prev_hash = prev_hash;
+   block.result = res;
+   block.header.timestamp = get_timestamp();
+   block.header.hash = create_hash(block_to_string(block));
+   block.header.nonce = get_nonce(block.header.hash, difficulty); 
+   block.header.hash = create_hash(block.header.hash + block.header.nonce);
+   return block;
 }
 
 Block::Block(){
-    difficulty = 2;
+    difficulty = 4;
 }
 
 Block::Block(uint8_t dif){
