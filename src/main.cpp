@@ -1,12 +1,25 @@
-#include "block.h"
+#include "blockchain.h"
+#include <iostream>
 
+int get_port();
 int main () {
+    Net net(get_port());
     Block block(2);
-    std::vector<Block_t> blockchain;
-    Block_t b = block.init_block("0000", 0);
-    blockchain.push_back(b);
-    Block_t b2 = block.init_block(b.header.hash, 1);
-    block.link_block(&blockchain, b2);
-
+    Block_t b, b2;
+    b = block.first_block();
+    b2 = block.init_block(b.header.hash, 0);
+    block.link_block(b2);
     return 0;
+}
+
+int get_port(){
+    int port;
+    while (true) {
+        printf("enter port\n>");
+        std::cin >> port;
+        if (port > 1024 && port < 9999){
+            return port; 
+        }
+    }
+
 }

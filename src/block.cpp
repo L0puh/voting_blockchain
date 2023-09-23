@@ -1,4 +1,4 @@
-#include "block.h"
+#include "blockchain.h"
 
 std::string Hash::get_nonce(std::string blockHash, uint8_t difficulty){
     std::string target = "";
@@ -44,23 +44,37 @@ uint32_t Block::get_timestamp() {
 }
 
 std::string Block::block_to_string(Block_t block) {
-    std::string data = block.header.prev_hash + 
-        block.header.timestamp + (char)block.result;
+    std::string data = 
+        block.header.prev_hash +  block.header.nonce +
+        block.header.hash + std::to_string(block.header.timestamp) + 
+        std::to_string(block.result);
     return data;
 }
 
-void Block::link_block(std::vector<Block_t> *blockchain, Block_t block) {
-    blockchain->push_back(block);
+void Block::link_block(Block_t block) {
+    blockchain.push_back(block);
+}
+
+std::vector<Block_t> Block::get_blockchain(){
+    return blockchain;
 }
 
 Block_t Block::init_block(std::string prev_hash, uint8_t res) {
-   block.header.prev_hash = prev_hash;
    block.result = res;
-   block.header.timestamp = get_timestamp();
-   block.header.hash = create_hash(block_to_string(block));
+   
+   header_t h{.prev_hash = prev_hash, 
+              .timestamp = get_timestamp(), 
+              .hash = create_hash(block_to_string(block))};
+   block.header = h;
    block.header.nonce = get_nonce(block.header.hash, difficulty); 
    block.header.hash = create_hash(block.header.hash + block.header.nonce);
    return block;
+}
+
+Block_t Block::first_block() {
+    Block_t b = init_block("0000000", -1);
+    blockchain.push_back(b);
+    return b;
 }
 
 Block::Block(){
