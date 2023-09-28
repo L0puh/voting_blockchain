@@ -2,6 +2,7 @@
 #include <iostream>
 
 int get_port();
+
 int main () {
     Net net(get_port());
     Block block(2);
@@ -21,5 +22,4 @@ int get_port(){
             return port; 
         }
     }
-
 }

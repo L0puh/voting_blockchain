@@ -21,6 +21,9 @@
 #include <errno.h>
 #include <thread>
 
+
+#define SERVICE_PORT 9000
+
 typedef uint16_t port_t;
 
 struct header_t {
@@ -69,6 +72,12 @@ class Net : public Hash {
         void handle_recv(int sockfd);
         void broadcast(std::string message, int sockfd, port_t port);
         void handle_send(int sockfd);
+        void recv(std::string *message);
+        void send(port_t port, std::string message); 
+        std::vector<port_t> ports_to_table(std::string ports);
+        port_t handle_connection();
+        void init_client(int sockfd);
+        void init_service(int sockfd);
 
 };
 #endif 

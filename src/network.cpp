@@ -1,5 +1,4 @@
 #include "blockchain.h"
-#include <cstring>
 #include <sys/socket.h>
 
 void log_error(int result) {
@@ -14,6 +13,12 @@ void log(std::string message) {
 
 Net::Net(port_t port) {
     int sockfd = init_node(port);
+    if (port == SERVICE_PORT) {
+        init_service(sockfd); 
+    } else {
+        init_client(sockfd);
+    } 
+
     std::thread recv_th(&Net::handle_recv, this, sockfd);
     recv_th.detach();
 
@@ -29,7 +34,6 @@ int Net::init_node(port_t port) {
     int sockfd = socket(servinfo.sin_family, SOCK_DGRAM, 0);
     log_error(bind(sockfd, (const struct sockaddr *)&servinfo, sizeof(servinfo)));
 
-    log("client's up");
     return sockfd;
 }
 
@@ -58,15 +62,42 @@ void Net::handle_send(int sockfd) {
 }
 
 void Net::broadcast(std::string message, int sockfd, port_t port) {
-   //FIXME 
    struct sockaddr_in their_addr;
    memset(&their_addr, 0, sizeof(their_addr));
    their_addr.sin_family = AF_INET;
    their_addr.sin_port = htons(port);
    socklen_t size_addr = sizeof(their_addr);
+
    if (sizeof(message) <= 32){
         log_error(sendto(sockfd, message.c_str(), 32, 0, (const struct sockaddr*)&their_addr, size_addr));
    }
 }
 
 
+void Net::init_service(int sockfd) {
+    port_t port = handle_connection();
+    connections.push_back(port);
+}
+
+void Net::init_client(int sockfd) {
+    send(SERVICE_PORT, std::to_string(1)); //TODO
+    std::string ports;
+    recv(&ports); 
+    std::vector<port_t> connections_table = ports_to_table(ports); 
+}
+
+port_t Net::handle_connection() {
+
+}
+
+std::vector<port_t> Net::ports_to_table(std::string ports) {
+
+}
+
+void Net::send(port_t port, std::string message) {
+
+}
+
+void Net::recv(std::string *message){
+
+}
