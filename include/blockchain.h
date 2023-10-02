@@ -38,6 +38,11 @@ struct Block_t {
     uint8_t result;
 };
 
+struct Conn_t {
+    socklen_t size_addr;
+    struct sockaddr_in their_addr;
+};
+
 class Hash {
     public:
         std::string create_hash(std::string data);
@@ -70,14 +75,15 @@ class Net : public Hash {
     private: 
         int init_node(port_t port);
         void handle_recv(int sockfd);
-        void broadcast(std::string message, int sockfd, port_t port);
         void handle_send(int sockfd);
-        void recv(std::string *message);
-        void send(port_t port, std::string message); 
+        void recv_ports(std::string *message);
+        void send(int sockfd, port_t port, std::string message); 
         std::vector<port_t> ports_to_table(std::string ports);
-        port_t handle_connection();
+        void handle_connection(int sockfd);
         void init_client(int sockfd);
+        Conn_t init_addr();
         void init_service(int sockfd);
+        std::string table_to_ports(std::vector<port_t> table); 
 
 };
 #endif 

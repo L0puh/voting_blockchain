@@ -1,5 +1,6 @@
 #include "blockchain.h"
 #include <sys/socket.h>
+#include <thread>
 
 void log_error(int result) {
     if (result == -1){
@@ -39,13 +40,12 @@ int Net::init_node(port_t port) {
 
 void Net::handle_recv(int sockfd){
     int bytes; 
-    struct sockaddr_in their_addr;
-    memset(&their_addr, 0, sizeof(their_addr));
-    socklen_t size_addr = sizeof(their_addr);
+    Conn_t addr = init_addr();
+    
     char buffer[32];
-    while ((bytes = recvfrom(sockfd, buffer, 32, 0, (struct sockaddr*)&their_addr, &size_addr) != -1)) {
+    while ((bytes = recvfrom(sockfd, buffer, 32, 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr) != -1)) {
         log("connected\n");
-        connections.push_back(their_addr.sin_port);
+        connections.push_back(addr.their_addr.sin_port);
     }
 }
 
@@ -55,49 +55,63 @@ void Net::handle_send(int sockfd) {
     while(true){
         if (connections.size() > 0){
             for (auto itr = connections.begin(); itr != connections.end(); itr++) {
-                broadcast(message, sockfd, *itr);
+                send(sockfd,*itr, message);
             }
         }     
     }
 }
 
-void Net::broadcast(std::string message, int sockfd, port_t port) {
-   struct sockaddr_in their_addr;
-   memset(&their_addr, 0, sizeof(their_addr));
-   their_addr.sin_family = AF_INET;
+void Net::send(int sockfd, port_t port, std::string message) {
+   Conn_t addr = init_addr();
+   struct sockaddr_in their_addr = addr.their_addr;
    their_addr.sin_port = htons(port);
-   socklen_t size_addr = sizeof(their_addr);
-
+   socklen_t addr_size = sizeof(their_addr);
    if (sizeof(message) <= 32){
-        log_error(sendto(sockfd, message.c_str(), 32, 0, (const struct sockaddr*)&their_addr, size_addr));
+        log_error(sendto(sockfd, message.c_str(), 32, 0, (const struct sockaddr*)&their_addr, addr_size));
    }
 }
 
 
 void Net::init_service(int sockfd) {
-    port_t port = handle_connection();
-    connections.push_back(port);
+    handle_connection(sockfd);
 }
 
 void Net::init_client(int sockfd) {
-    send(SERVICE_PORT, std::to_string(1)); //TODO
+    send(sockfd, SERVICE_PORT, std::to_string(1)); //TODO
     std::string ports;
-    recv(&ports); 
+    recv_ports(&ports); 
     std::vector<port_t> connections_table = ports_to_table(ports); 
 }
 
-port_t Net::handle_connection() {
-
+Conn_t Net::init_addr(){
+   struct sockaddr_in their_addr;
+   memset(&their_addr, 0, sizeof(their_addr));
+   their_addr.sin_family = AF_INET;
+   socklen_t size_addr = sizeof(their_addr);
+   return Conn_t{.size_addr = size_addr, .their_addr = their_addr};
 }
 
+void Net::handle_connection(int sockfd) {
+    Conn_t addr = init_addr();
+    std::thread th(&Net::handle_recv, this, sockfd);
+    th.detach();
+    // handle_send()
+    // send the table of ports to new user. 
+    // and send new port to all users as well.
+}
+
+std::string Net::table_to_ports(std::vector<port_t> table) {
+    std::string ports = "";
+    //TODO serealization from string ports to vector table
+    return ports;
+}
 std::vector<port_t> Net::ports_to_table(std::string ports) {
-
+    std::vector<port_t> table;
+    //TODO serealization from string ports to vector table
+    return table; 
 }
 
-void Net::send(port_t port, std::string message) {
 
-}
-
-void Net::recv(std::string *message){
-
+void Net::recv_ports(std::string *message){
+    // recv ports from service node
 }
