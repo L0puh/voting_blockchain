@@ -1,7 +1,6 @@
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
-
 //block
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,10 +20,11 @@
 #include <errno.h>
 #include <thread>
 
-
 #define SERVICE_PORT 9000
 
 typedef uint16_t port_t;
+
+const std::string node_addr =  "198.16.0.0.18";
 
 struct header_t {
     std::string prev_hash;
@@ -38,7 +38,7 @@ struct Block_t {
     uint8_t result;
 };
 
-struct Conn_t {
+struct addr_t {
     socklen_t size_addr;
     struct sockaddr_in their_addr;
 };
@@ -72,18 +72,22 @@ class Net : public Hash {
     std::vector<port_t> connections;
     public:
         Net(port_t port);
+        int init_socket(port_t port);
+        addr_t init_addr(port_t port);
+    private:
+        void log_error(int result);
+        void log(std::string message);
+
     private: 
-        int init_node(port_t port);
-        void handle_recv(int sockfd);
-        void handle_send(int sockfd);
-        void recv_ports(std::string *message);
-        void send(int sockfd, port_t port, std::string message); 
-        std::vector<port_t> ports_to_table(std::string ports);
-        void handle_connection(int sockfd);
-        void init_client(int sockfd);
-        Conn_t init_addr();
-        void init_service(int sockfd);
-        std::string table_to_ports(std::vector<port_t> table); 
+        //  node
+        void connect_service(port_t port, int sockfd);
+
+
+    private:
+        // service 
+
+    private:
+        // miner
 
 };
 #endif 
