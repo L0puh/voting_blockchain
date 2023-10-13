@@ -1,12 +1,14 @@
 #include "blockchain.h"
 #include <cstring>
 #include <sys/socket.h>
+#include <vector>
 
 Net::Net(port_t port){
     int sockfd = init_socket(port);
     if (port == SERVICE_PORT) {
+        std::vector<conn_t> ports;
         log("detected service port");
-        accept_connection(sockfd);
+        accept_connection(ports, sockfd);
     } else {
         log("detected client port");
         connect_service(port, sockfd);
@@ -15,7 +17,7 @@ Net::Net(port_t port){
 }
 
 // SERVICE
-void Net::accept_connection(int sockfd){
+void Net::accept_connection(std::vector<conn_t> ports, int sockfd){
     int bytes;
 
     struct sockaddr_in addr;
@@ -26,11 +28,40 @@ void Net::accept_connection(int sockfd){
     log("waiting to recieve..");
     while((bytes = recvfrom(sockfd, &addr_str, PORTS_SIZE, 0, (struct sockaddr*)&addr, &addr_size)) != -1) {
         printf("new connection from %s\n", addr_str);
+        save_port(ports, addr_str);
         if (bytes > 0) {
            //TODO
            log_error(sendto(sockfd, "2312412412", 300, 0, (struct sockaddr*)&addr, addr_size));
         }
      }
+}
+
+conn_t Net::convert_addr(std::string addr_str) {
+    std::string addr, port;
+    size_t pos = addr_str.find(":");
+    if (pos != std::string::npos) {
+        addr = addr_str.substr(0, pos);
+        port = addr_str.substr(pos + 1);
+    }
+    int p = stoi(port);
+    port_t portn = static_cast<port_t>(p);
+    return conn_t{.addr = addr, .port = portn};
+}
+
+int Net::save_port(std::vector<conn_t> ports, std::string addr_str) {
+    std::vector<conn_t>::iterator itr = ports.begin();
+    conn_t addr = convert_addr(addr_str);
+    if (ports.size() != 0) {
+        for (; itr != ports.end(); itr++) {
+            if (itr->addr == addr.addr && itr->port == addr.port) {
+                log("addr already exists");
+                return 0;
+            }
+        }
+    }
+    
+    ports.push_back(addr);
+    return 0;
 }
 // NODE
 void Net::connect_service(port_t port, int sockfd){

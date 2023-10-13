@@ -24,6 +24,8 @@
 // const 
 #define PORTS_SIZE 300
 #define SERVICE_PORT 9000
+#define ADDR_SIZE 11 
+#define PORT_SIZE 4
 const std::string node_addr =  "198.16.0.0.18";
 
 typedef uint16_t port_t;
@@ -45,6 +47,10 @@ struct addr_t {
     struct sockaddr_in their_addr;
 };
 
+struct conn_t {
+    std::string addr;
+    port_t port; 
+};
 class Hash {
     public:
         std::string create_hash(std::string data);
@@ -76,10 +82,11 @@ class Net : public Hash {
         Net(port_t port);
         int init_socket(port_t port);
         addr_t init_addr(port_t port);
+        conn_t convert_addr(std::string addr_str);
     private:
         void log_error(int result);
         void log(std::string message);
-
+        
     private: 
         //  node
         void connect_service(port_t port, int sockfd);
@@ -87,7 +94,8 @@ class Net : public Hash {
 
     private:
         // service 
-        void accept_connection(int sockfd);
+        void accept_connection(std::vector<conn_t> ports, int sockfd);
+        int save_port(std::vector<conn_t> ports, std::string addr_str);
 
     private:
         // miner
