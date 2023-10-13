@@ -20,11 +20,13 @@
 #include <errno.h>
 #include <thread>
 
+
+// const 
+#define PORTS_SIZE 300
 #define SERVICE_PORT 9000
+const std::string node_addr =  "198.16.0.0.18";
 
 typedef uint16_t port_t;
-
-const std::string node_addr =  "198.16.0.0.18";
 
 struct header_t {
     std::string prev_hash;
@@ -81,10 +83,11 @@ class Net : public Hash {
     private: 
         //  node
         void connect_service(port_t port, int sockfd);
-
+        void get_ports(int sockfd);
 
     private:
         // service 
+        void accept_connection(int sockfd);
 
     private:
         // miner

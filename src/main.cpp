@@ -7,12 +7,12 @@ int get_port();
 int main (int argc, char* argv[]) {
     Net net(init_port(argc, argv));
 
-    Block block(2);
-    Block_t b, b2;
+    /* Block block(2); */
+    /* Block_t b, b2; */
 
-    b = block.first_block();
-    b2 = block.init_block(b.header.hash, 0);
-    block.link_block(b2);
+    /* b = block.first_block(); */
+    /* b2 = block.init_block(b.header.hash, 0); */
+    /* block.link_block(b2); */
 
     return 0;
 }
