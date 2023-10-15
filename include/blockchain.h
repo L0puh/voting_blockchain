@@ -27,6 +27,7 @@
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
 const std::string node_addr =  "198.16.0.0.18";
+const char separator= '_';
 
 typedef uint16_t port_t;
 
@@ -77,7 +78,7 @@ class Block : public Hash {
 };
 
 class Net : public Hash { 
-    std::vector<port_t> connections;
+    std::vector<conn_t> connections;
     public:
         Net(port_t port);
         int init_socket(port_t port);
@@ -86,16 +87,17 @@ class Net : public Hash {
     private:
         void log_error(int result);
         void log(std::string message);
-        
+        void print_connections();
     private: 
         //  node
         void connect_service(port_t port, int sockfd);
-        void get_ports(int sockfd);
+        void get_ports(char* ports[PORTS_SIZE], int sockfd);
+        void convert_ports(std::string ports);
 
     private:
         // service 
-        void accept_connection(std::vector<conn_t> ports, int sockfd);
-        int save_port(std::vector<conn_t> ports, std::string addr_str);
+        void accept_connection(int sockfd);
+        int save_port(std::string addr_str);
 
     private:
         // miner
