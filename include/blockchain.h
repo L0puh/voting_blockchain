@@ -12,6 +12,7 @@
 #include <vector>
 
 //net
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -28,6 +29,11 @@
 #define PORT_SIZE 4
 const std::string node_addr =  "198.16.0.0.18";
 const char separator= '_';
+
+enum req {
+    LENGTH = 0,
+    GET,  
+};
 
 typedef uint16_t port_t;
 
@@ -93,11 +99,15 @@ class Net : public Hash {
         void connect_service(port_t port, int sockfd);
         void get_ports(char* ports[PORTS_SIZE], int sockfd);
         void convert_ports(std::string ports);
+        void get_blockchain(int sockfd);
+        void send_blockchain(int sockfd);
+        void receive_request(int sockfd);
 
     private:
         // service 
         void accept_connection(int sockfd);
         int save_port(std::string addr_str);
+
 
     private:
         // miner
