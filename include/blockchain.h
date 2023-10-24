@@ -79,11 +79,14 @@ class Block : public Hash {
         Block_t init_block(std::string prev_hash, uint8_t res);
         void link_block(Block_t block);
         Block_t first_block();
+        std::vector<Block_t> recv_blockchain();
+    public:
         std::vector<Block_t> get_blockchain();
+        int get_length();
 
 };
 
-class Net : public Hash { 
+class Net : public Block { 
     std::vector<conn_t> connections;
     public:
         Net(port_t port);
@@ -99,8 +102,7 @@ class Net : public Hash {
         void connect_service(port_t port, int sockfd);
         void get_ports(char* ports[PORTS_SIZE], int sockfd);
         void convert_ports(std::string ports);
-        void get_blockchain(int sockfd);
-        void send_blockchain(int sockfd);
+        void recv_blockchain(int sockfd);
         void receive_request(int sockfd);
 
     private:

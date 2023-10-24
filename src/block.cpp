@@ -1,5 +1,10 @@
 #include "blockchain.h"
 
+int Block::get_length(){
+    return 0;
+}
+
+
 std::string Hash::get_nonce(std::string blockHash, uint8_t difficulty){
     std::string target = "";
 

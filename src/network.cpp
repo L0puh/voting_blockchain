@@ -1,8 +1,7 @@
 #include "blockchain.h"
-#include <cstring>
-#include <string>
-#include <sys/socket.h>
-#include <vector>
+
+char* convert_blockchain(std::vector<Block_t> blockchain);
+std::vector<Block_t> convert_blockchain(char* blockchain);
 
 Net::Net(port_t port){
     int sockfd = init_socket(port);
@@ -17,7 +16,7 @@ Net::Net(port_t port){
         std::string str = *ports;
         convert_ports(str);
         print_connections();    
-        get_blockchain(sockfd);
+        recv_blockchain(sockfd);
 
     }
 }
@@ -55,40 +54,12 @@ int count_addr(std::string addr) {
     return 0;
 }
 
-void Net::convert_ports(std::string ports){
-    // ADDR:PORT_ADDR:PORT_...
-    int count = 1, c;
-    for (const char c: ports) {
-        if (c == separator)
-            count++;
-    }
-    log("converting ports...");
-    for (; count != 1; count--) {
-        if (ports.length() != 0) {
-            c = count_addr(ports);
-            save_port(ports.substr(0, c));
-            ports.erase(0, c+1);
-        }
-    }
-    save_port(ports);
-}
 void Net::print_connections(){
     std::vector<conn_t>::iterator itr = connections.begin();
     log("connections:");
     for(; itr != connections.end(); itr++){
         printf("# %s : %d\n", itr->addr.c_str(), itr->port);
     }
-}
-conn_t Net::convert_addr(std::string addr_str) {
-    std::string addr, port;
-    size_t pos = addr_str.find(":");
-    if (pos != std::string::npos) {
-        addr = addr_str.substr(0, pos);
-        port = addr_str.substr(pos + 1);
-    }
-    int p = stoi(port);
-    port_t portn = static_cast<port_t>(p);
-    return conn_t{.addr = addr, .port = portn};
 }
 
 int Net::save_port(std::string addr_str) {
@@ -107,6 +78,7 @@ int Net::save_port(std::string addr_str) {
     log("connection saved");
     return 0;
 }
+
 // NODE
 void Net::connect_service(port_t port, int sockfd){
     int res;
@@ -115,14 +87,24 @@ void Net::connect_service(port_t port, int sockfd){
     log_error(sendto(sockfd, buff.c_str(), sizeof(buff), 0, (const struct sockaddr*)&addr.their_addr, addr.size_addr));
     log("connected to the service");
 }
-void Net::send_blockchain(int sockfd) {
-    // TODO 
-}
+
 void Net::receive_request(int sockfd) {
-    // TODO
+    int bytes, req;
+    addr_t addr;
+    while((bytes = recvfrom(sockfd, &req, sizeof(int), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
+        if (req == LENGTH) {
+            int length = get_length();
+            log_error(sendto(sockfd, &length, sizeof(int), 0, (const struct sockaddr *)&addr.their_addr, addr.size_addr));
+        } else if (req == GET) {
+            std::vector<Block_t> bl = get_blockchain();
+            char* blockchain = convert_blockchain(bl);
+            log_error(sendto(sockfd, blockchain, sizeof(blockchain), 0, (const struct sockaddr*)&addr.their_addr, addr.size_addr));
+        } 
+    }
 
 }
-void Net::get_blockchain(int sockfd){
+
+void Net::recv_blockchain(int sockfd){
     int length = 0, req = LENGTH, count=0;
     std::vector<conn_t>::iterator itr = connections.begin();
     struct sockaddr_in trusted;
@@ -148,6 +130,7 @@ void Net::get_blockchain(int sockfd){
     blockchain[length] = '\0';
     //TODO: convert??
 }
+
 void Net::get_ports(char *ports[PORTS_SIZE], int sockfd){
     addr_t addr = init_addr(SERVICE_PORT);
     int bytes;
@@ -162,7 +145,47 @@ void Net::get_ports(char *ports[PORTS_SIZE], int sockfd){
         }
     }
 }
+// covert
 
+char* convert_blockchain(std::vector<Block_t> blockchain) {
+    //TODO
+    return 0;
+}
+std::vector<Block_t> convert_blockchain(char* blockchain){
+    std::vector<Block_t> bl;
+    //TODO
+    return bl;
+}
+
+conn_t Net::convert_addr(std::string addr_str) {
+    std::string addr, port;
+    size_t pos = addr_str.find(":");
+    if (pos != std::string::npos) {
+        addr = addr_str.substr(0, pos);
+        port = addr_str.substr(pos + 1);
+    }
+    int p = stoi(port);
+    port_t portn = static_cast<port_t>(p);
+    return conn_t{.addr = addr, .port = portn};
+}
+
+void Net::convert_ports(std::string ports){
+    // ADDR:PORT_ADDR:PORT_...
+    int count = 1, c;
+    for (const char c: ports) {
+        if (c == separator)
+            count++;
+    }
+    log("converting ports...");
+    for (; count != 1; count--) {
+        if (ports.length() != 0) {
+            c = count_addr(ports);
+            save_port(ports.substr(0, c));
+            ports.erase(0, c+1);
+        }
+    }
+    save_port(ports);
+}
 // init 
 
 int Net::init_socket(port_t port) {
