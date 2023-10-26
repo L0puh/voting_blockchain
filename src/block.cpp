@@ -56,8 +56,8 @@ std::string Block::block_to_string(Block_t block) {
     return data;
 }
 
-nlohmann::json Block::block_to_json(Block_t block){
-    nlohmann::json bl = {
+json Block::block_to_json(Block_t block){
+    json bl = {
         {"hash", block.header.hash},
         {"prev_hash", block.header.prev_hash},
         {"nonce", block.header.nonce},
@@ -68,10 +68,12 @@ nlohmann::json Block::block_to_json(Block_t block){
 }
 
 void Block::link_block(Block_t block) {
-    blockchain.push_back(block);
+    std::string bl = blockchain.dump(INDENT);
+    bl += ",\n" + block_to_json(block).dump(INDENT);
+    blockchain = json::parse(bl);
 }
 
-std::vector<Block_t> Block::get_blockchain(){
+json Block::get_blockchain(){
     return blockchain;
 }
 
@@ -89,8 +91,9 @@ Block_t Block::init_block(std::string prev_hash, uint8_t res) {
 
 Block_t Block::first_block() {
     Block_t b = init_block("0000000", -1);
-    blockchain.push_back(b);
+    blockchain = block_to_json(b);
     return b;
+    
 }
 
 Block::Block(){

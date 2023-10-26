@@ -1,6 +1,5 @@
 #include "blockchain.h"
 
-std::vector<Block_t> convert_blockchain(char* blockchain);
 
 Net::Net(port_t port){
     int sockfd = init_socket(port);
@@ -89,23 +88,23 @@ void Net::connect_service(port_t port, int sockfd){
 void Net::receive_request(int sockfd) {
     int bytes, req;
     addr_t addr;
-    std::vector<Block_t> bl = get_blockchain();
-    std::string blockchain = convert_blockchain(bl);
+    json blockchain = get_blockchain();
+    std::string bl = blockchain.dump(INDENT);
     while((bytes = recvfrom(sockfd, &req, sizeof(int), 0,\
                 (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
         if (req == LENGTH) {
-            int length = sizeof(blockchain);
+            int length = sizeof(bl);
             log_error(sendto(sockfd, &length, sizeof(int), 0,\
                         (const struct sockaddr *)&addr.their_addr, addr.size_addr));
         } else if (req == GET) {
-            log_error(sendto(sockfd, blockchain.c_str(), sizeof(blockchain), 0,\
+            log_error(sendto(sockfd, bl.c_str(), sizeof(bl), 0,\
                         (const struct sockaddr*)&addr.their_addr, addr.size_addr));
         } 
     }
 
 }
 
-void Net::recv_blockchain(int sockfd){
+json Net::recv_blockchain(int sockfd){
     int length = 0, req = LENGTH, count=0;
     std::vector<conn_t>::iterator itr = connections.begin();
     struct sockaddr_in trusted;
@@ -129,7 +128,7 @@ void Net::recv_blockchain(int sockfd){
     log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&trusted, addr_size ));
     log_error(recvfrom(sockfd, &blockchain, sizeof(count), 0, (struct sockaddr*)&trusted, &addr_size));
     blockchain[length] = '\0';
-    //TODO: convert??
+    return json::parse(blockchain);
 }
 
 void Net::get_ports(char *ports[PORTS_SIZE], int sockfd){
@@ -145,20 +144,6 @@ void Net::get_ports(char *ports[PORTS_SIZE], int sockfd){
             break;
         }
     }
-}
-// covert
-std::string Net::convert_blockchain(std::vector<Block_t> blockchain) {
-    std::vector<Block_t>::iterator itr = blockchain.begin();
-    std::string blocks;
-    for (;itr != blockchain.end(); itr++) {
-        blocks += block_to_json(*itr).dump(4);
-    }
-    return blocks;
-}
-std::vector<Block_t> convert_blockchain(char* blockchain){
-    std::vector<Block_t> bl;
-    //TODO
-    return bl;
 }
 
 conn_t Net::convert_addr(std::string addr_str) {

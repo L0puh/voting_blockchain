@@ -23,11 +23,14 @@
 #include <thread>
 
 
+using json = nlohmann::json;
+
 // const 
 #define PORTS_SIZE 300
 #define SERVICE_PORT 9000
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
+#define INDENT 4
 const std::string node_addr =  "198.16.0.0.18";
 const char separator= '_';
 
@@ -69,13 +72,14 @@ class Block : public Hash {
     private:
         Block_t block; 
         uint8_t difficulty;
-        std::vector<Block_t> blockchain;
+        json blockchain;
+
     public:
         Block(uint8_t difficulty);
         Block();
     public:
         std::string block_to_string(Block_t block);
-        nlohmann::json block_to_json(Block_t block);
+        json block_to_json(Block_t block);
     public:
         uint32_t get_timestamp();
         Block_t init_block(std::string prev_hash, uint8_t res);
@@ -83,7 +87,7 @@ class Block : public Hash {
         Block_t first_block();
         std::vector<Block_t> recv_blockchain();
     public:
-        std::vector<Block_t> get_blockchain();
+        json get_blockchain();
         int get_length();
 
 };
@@ -95,7 +99,6 @@ class Net : public Block {
         int init_socket(port_t port);
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
-        std::string convert_blockchain(std::vector<Block_t> blockchain);
     private:
         void log_error(int result);
         void log(std::string message);
@@ -105,7 +108,7 @@ class Net : public Block {
         void connect_service(port_t port, int sockfd);
         void get_ports(char* ports[PORTS_SIZE], int sockfd);
         void convert_ports(std::string ports);
-        void recv_blockchain(int sockfd);
+        json recv_blockchain(int sockfd);
         void receive_request(int sockfd);
 
     private:
