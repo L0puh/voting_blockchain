@@ -6,7 +6,6 @@ int get_port();
 
 int main (int argc, char* argv[]) {
     Net net(init_port(argc, argv));
-
     /* Block block(2); */
     /* Block_t b, b2; */
 

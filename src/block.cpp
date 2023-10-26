@@ -56,6 +56,17 @@ std::string Block::block_to_string(Block_t block) {
     return data;
 }
 
+nlohmann::json Block::block_to_json(Block_t block){
+    nlohmann::json bl = {
+        {"hash", block.header.hash},
+        {"prev_hash", block.header.prev_hash},
+        {"nonce", block.header.nonce},
+        {"timestamp", block.header.timestamp},
+        {"result", block.result}
+    };
+    return bl;
+}
+
 void Block::link_block(Block_t block) {
     blockchain.push_back(block);
 }

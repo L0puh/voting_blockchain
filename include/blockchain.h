@@ -10,6 +10,7 @@
 #include <cstring>
 #include <ctime>
 #include <vector>
+#include "json.hpp"
 
 //net
 #include <arpa/inet.h>
@@ -74,6 +75,7 @@ class Block : public Hash {
         Block();
     public:
         std::string block_to_string(Block_t block);
+        nlohmann::json block_to_json(Block_t block);
     public:
         uint32_t get_timestamp();
         Block_t init_block(std::string prev_hash, uint8_t res);
@@ -93,6 +95,7 @@ class Net : public Block {
         int init_socket(port_t port);
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
+        std::string convert_blockchain(std::vector<Block_t> blockchain);
     private:
         void log_error(int result);
         void log(std::string message);
