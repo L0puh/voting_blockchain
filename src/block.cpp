@@ -1,6 +1,18 @@
 #include "blockchain.h"
 
+void log(std::string message) {
+    printf("%s\n", message.c_str());
+}
+
+std::string pop_end(json str){
+    std::string bl = str.dump(INDENT);
+    bl.pop_back();
+    return bl;
+}
+
+
 int Block::get_length(){
+    //TODO
     return 0;
 }
 
@@ -57,24 +69,28 @@ std::string Block::block_to_string(Block_t block) {
 }
 
 json Block::block_to_json(Block_t block){
-    json bl = {
-        {"hash", block.header.hash},
-        {"prev_hash", block.header.prev_hash},
-        {"nonce", block.header.nonce},
-        {"timestamp", block.header.timestamp},
-        {"result", block.result}
-    };
-    return bl;
+    std::string bl = "[{\
+        {\"hash\", block.header.hash},\
+        {\"prev_hash\", block.header.prev_hash},\
+        {\"nonce\", block.header.nonce},\
+        {\"timestamp\", block.header.timestamp},\
+        {\"result\", block.result}\
+    }]";
+    
+    return json::parse(bl);
 }
 
 void Block::link_block(Block_t block) {
-    std::string bl = blockchain.dump(INDENT);
-    bl += ",\n" + block_to_json(block).dump(INDENT);
+    std::string bl = pop_end(blockchain);
+    log("link block");
+    bl += ",\n" + block_to_json(block).dump(INDENT) + ']';
     blockchain = json::parse(bl);
 }
 
 json Block::get_blockchain(){
-    return blockchain;
+    /* return blockchain; */
+    //FIXME: parse error??
+    return json::parse("{'0':'0'}");
 }
 
 Block_t Block::init_block(std::string prev_hash, uint8_t res) {

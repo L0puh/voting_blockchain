@@ -26,7 +26,6 @@
 using json = nlohmann::json;
 
 // const 
-#define PORTS_SIZE 300
 #define SERVICE_PORT 9000
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
@@ -106,17 +105,15 @@ class Net : public Block {
     private: 
         //  node
         void connect_service(port_t port, int sockfd);
-        void get_ports(char* ports[PORTS_SIZE], int sockfd);
+        std::string recv_ports(int sockfd);
         void convert_ports(std::string ports);
         json recv_blockchain(int sockfd);
-        void receive_request(int sockfd);
-
+        void recv_request(int sockfd);
+        std::string get_ports();
     private:
         // service 
         void accept_connection(int sockfd);
         int save_port(std::string addr_str);
-
-
     private:
         // miner
 
