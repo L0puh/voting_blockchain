@@ -112,20 +112,21 @@ void Net::recv_request(int sockfd) {
     log("* wait requests...");
     int bytes, req;
     addr_t addr;
+    memset(&addr.their_addr, 0, addr.size_addr);
     while((bytes = recvfrom(sockfd, &req, sizeof(int), 0,\
                 (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
-        log("new connection");
-        json blockchain = get_blockchain();
-        std::string bl = blockchain.dump(INDENT);
-
+        json block = get_blockchain();
+        std::string bl = block.dump(INDENT);
+        printf("# blockchain: %s\n\n", bl.c_str());
         if (req == LENGTH) {
             log("request: length");
-            int length = sizeof(bl);
+            int length = get_length();
+            printf("# length: %d\n", length);
             log_error(sendto(sockfd, &length, sizeof(int), 0,\
                         (const struct sockaddr *)&addr.their_addr, addr.size_addr));
         } else if (req == GET) {
             log("request: get");
-            log_error(sendto(sockfd, bl.c_str(), sizeof(bl), 0,\
+            log_error(sendto(sockfd, bl.c_str(), get_length(), 0,\
                         (const struct sockaddr*)&addr.their_addr, addr.size_addr));
         }
     } 
@@ -136,7 +137,7 @@ void Net::recv_request(int sockfd) {
 json Net::recv_blockchain(int sockfd){
     log("recv blockchain...");
     int length = 0, req = LENGTH, count=0;
-    if (connections.size()  <= 1)  {
+    if (connections.size()  <= 2)  {
         log("no nodes found");
         json empty;
         return empty; 
@@ -152,8 +153,8 @@ json Net::recv_blockchain(int sockfd){
         addr.sin_family      = AF_INET;
         socklen_t addr_size = sizeof(addr);
         log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&addr, addr_size));
-        printf("connected to %hu\n", itr->port);
         log_error(recvfrom(sockfd, &length, sizeof(int), 0, (struct sockaddr*)&addr, &addr_size));
+        printf("connected to %hu\n | length: %d\n", itr->port, length);
         if (length > count) {
             count = length;
             trusted = addr;

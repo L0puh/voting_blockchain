@@ -12,8 +12,8 @@ std::string pop_end(json str){
 
 
 int Block::get_length(){
-    //TODO
-    return 0;
+    std::string bl = blockchain.dump(INDENT);
+    return bl.size();
 }
 
 
