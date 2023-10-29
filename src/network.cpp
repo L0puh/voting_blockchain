@@ -6,16 +6,21 @@ Net::Net(port_t port){
     if (port >= SERVICE_PORT) {
         log("detected service port");
         accept_connection(sockfd);
-    } else {
+    } else { 
+
         std::thread th(&Net::recv_request, this, sockfd);
-        th.detach();
+
         log("detected client port");
         connect_service(port, sockfd);
         std::string ports = recv_ports(sockfd); 
         convert_ports(ports);
         print_connections();    
-        /* recv_blockchain(sockfd); */
+        recv_blockchain(sockfd);
 
+        th.detach();
+        while(true){
+            //FIXME
+        }
 
     }
 
@@ -104,14 +109,15 @@ void Net::connect_service(port_t port, int sockfd){
 
 
 void Net::recv_request(int sockfd) {
+    log("* wait requests...");
     int bytes, req;
     addr_t addr;
-    log("* wait requests...");
-    /* json blockchain = get_blockchain(); */
-    /* std::string bl = blockchain.dump(INDENT); */
-    std::string bl = "";
     while((bytes = recvfrom(sockfd, &req, sizeof(int), 0,\
                 (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
+        log("new connection");
+        json blockchain = get_blockchain();
+        std::string bl = blockchain.dump(INDENT);
+
         if (req == LENGTH) {
             log("request: length");
             int length = sizeof(bl);
@@ -121,13 +127,14 @@ void Net::recv_request(int sockfd) {
             log("request: get");
             log_error(sendto(sockfd, bl.c_str(), sizeof(bl), 0,\
                         (const struct sockaddr*)&addr.their_addr, addr.size_addr));
-        } 
+        }
     } 
     log_error(bytes);
 
 }
 
 json Net::recv_blockchain(int sockfd){
+    log("recv blockchain...");
     int length = 0, req = LENGTH, count=0;
     if (connections.size()  <= 1)  {
         log("no nodes found");
@@ -135,14 +142,17 @@ json Net::recv_blockchain(int sockfd){
         return empty; 
     }
     std::vector<conn_t>::iterator itr = connections.begin();
+    itr++; //skip init ports
     struct sockaddr_in trusted;
     for (; itr != connections.end(); itr++){
         struct sockaddr_in addr;
-        addr.sin_addr.s_addr = inet_addr((const char*)&itr->addr);
+        memset(&addr, 0, sizeof(addr));
+        /* addr.sin_addr.s_addr = inet_addr((const char*)&itr->addr); */
         addr.sin_port        = htons(itr->port);
         addr.sin_family      = AF_INET;
         socklen_t addr_size = sizeof(addr);
         log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&addr, addr_size));
+        printf("connected to %hu\n", itr->port);
         log_error(recvfrom(sockfd, &length, sizeof(int), 0, (struct sockaddr*)&addr, &addr_size));
         if (length > count) {
             count = length;
@@ -174,6 +184,7 @@ std::string Net::recv_ports(int sockfd){
             return buff;
         }
     }
+    log("no ports recv");
     return "";
 }
 

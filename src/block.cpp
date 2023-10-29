@@ -69,28 +69,28 @@ std::string Block::block_to_string(Block_t block) {
 }
 
 json Block::block_to_json(Block_t block){
-    std::string bl = "[{\
-        {\"hash\", block.header.hash},\
-        {\"prev_hash\", block.header.prev_hash},\
-        {\"nonce\", block.header.nonce},\
-        {\"timestamp\", block.header.timestamp},\
-        {\"result\", block.result}\
-    }]";
-    
-    return json::parse(bl);
+    json bl = {
+        {"hash", block.header.hash},
+        {"prev_hash", block.header.prev_hash},
+        {"nonce", block.header.nonce},
+        {"timestamp", block.header.timestamp},
+        {"result", block.result}
+    };
+    return bl;
 }
 
 void Block::link_block(Block_t block) {
-    std::string bl = pop_end(blockchain);
+    std::string bl = "[";
+    bl += blockchain.dump(INDENT);
+    if (bl[bl.size()-1] == ',')
+        bl = pop_end(blockchain);
     log("link block");
     bl += ",\n" + block_to_json(block).dump(INDENT) + ']';
     blockchain = json::parse(bl);
 }
 
 json Block::get_blockchain(){
-    /* return blockchain; */
-    //FIXME: parse error??
-    return json::parse("{'0':'0'}");
+    return blockchain;
 }
 
 Block_t Block::init_block(std::string prev_hash, uint8_t res) {
