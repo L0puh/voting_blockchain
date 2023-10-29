@@ -11,8 +11,7 @@ int main (int argc, char* argv[]) {
     b = block.first_block();
     b2 = block.init_block(b.header.hash, 0);
     block.link_block(b2);
-    printf("BLOCKCHAIN: %s\n", block.get_blockchain().dump(INDENT).c_str());
-    Net net(init_port(argc, argv));
+    Net net(init_port(argc, argv), &block);
 
     return 0;
 }

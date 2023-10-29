@@ -94,7 +94,7 @@ class Block : public Hash {
 class Net : public Block { 
     std::vector<conn_t> connections;
     public:
-        Net(port_t port);
+        Net(port_t port, Block *block);
         int init_socket(port_t port);
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
@@ -108,8 +108,9 @@ class Net : public Block {
         std::string recv_ports(int sockfd);
         void convert_ports(std::string ports);
         json recv_blockchain(int sockfd);
-        void recv_request(int sockfd);
+        void recv_request(int sockfd, Block *block);
         std::string get_ports();
+        int recv_length(int sockfd, addr_t *tr_addr);
     private:
         // service 
         void accept_connection(int sockfd);

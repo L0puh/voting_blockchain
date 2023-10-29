@@ -1,21 +1,21 @@
 #include "blockchain.h"
 
 
-Net::Net(port_t port){
+Net::Net(port_t port, Block *block){
     int sockfd = init_socket(port);
     if (port >= SERVICE_PORT) {
         log("detected service port");
         accept_connection(sockfd);
     } else { 
 
-        std::thread th(&Net::recv_request, this, sockfd);
+        std::thread th(&Net::recv_request, this, sockfd, block);
 
         log("detected client port");
         connect_service(port, sockfd);
         std::string ports = recv_ports(sockfd); 
         convert_ports(ports);
         print_connections();    
-        recv_blockchain(sockfd);
+        json blockchain = recv_blockchain(sockfd);
 
         th.detach();
         while(true){
@@ -94,7 +94,6 @@ int Net::save_port(std::string addr_str) {
         }
     }
     connections.push_back(addr);
-    log("connection saved");
     return 0;
 }
 
@@ -108,67 +107,74 @@ void Net::connect_service(port_t port, int sockfd){
 }
 
 
-void Net::recv_request(int sockfd) {
+void Net::recv_request(int sockfd, Block* block) {
     log("* wait requests...");
     int bytes, req;
     addr_t addr;
-    memset(&addr.their_addr, 0, addr.size_addr);
-    while((bytes = recvfrom(sockfd, &req, sizeof(int), 0,\
-                (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
-        json block = get_blockchain();
-        std::string bl = block.dump(INDENT);
-        printf("# blockchain: %s\n\n", bl.c_str());
+
+    memset(&addr.their_addr, 0, sizeof(addr.their_addr));
+    addr.size_addr = sizeof(addr.their_addr);
+
+    while((bytes = recvfrom(sockfd, &req, sizeof(int), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr )) != -1){
+        std::string bl = block->get_blockchain().dump(INDENT);
         if (req == LENGTH) {
             log("request: length");
-            int length = get_length();
-            printf("# length: %d\n", length);
-            log_error(sendto(sockfd, &length, sizeof(int), 0,\
-                        (const struct sockaddr *)&addr.their_addr, addr.size_addr));
+            int length = block->get_length();
+            log_error(sendto(sockfd, &length, sizeof(int), 0, (struct sockaddr *)&addr.their_addr, addr.size_addr));
+            log("sent:    length");
         } else if (req == GET) {
             log("request: get");
-            log_error(sendto(sockfd, bl.c_str(), get_length(), 0,\
-                        (const struct sockaddr*)&addr.their_addr, addr.size_addr));
+            if (bl.length() == block->get_length()){
+                log_error(sendto(sockfd, bl.c_str(), bl.length(), 0, (struct sockaddr*)&addr.their_addr, addr.size_addr));
+            }
+            log("sent:    blockchain");
         }
     } 
     log_error(bytes);
-
 }
 
-json Net::recv_blockchain(int sockfd){
-    log("recv blockchain...");
+int Net::recv_length(int sockfd, addr_t *tr_addr){
     int length = 0, req = LENGTH, count=0;
-    if (connections.size()  <= 2)  {
-        log("no nodes found");
-        json empty;
-        return empty; 
-    }
     std::vector<conn_t>::iterator itr = connections.begin();
     itr++; //skip init ports
     struct sockaddr_in trusted;
     for (; itr != connections.end(); itr++){
         struct sockaddr_in addr;
         memset(&addr, 0, sizeof(addr));
-        /* addr.sin_addr.s_addr = inet_addr((const char*)&itr->addr); */
-        addr.sin_port        = htons(itr->port);
-        addr.sin_family      = AF_INET;
+        addr.sin_port       = htons(itr->port);
+        addr.sin_family     = AF_INET;
         socklen_t addr_size = sizeof(addr);
         log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&addr, addr_size));
         log_error(recvfrom(sockfd, &length, sizeof(int), 0, (struct sockaddr*)&addr, &addr_size));
-        printf("connected to %hu\n | length: %d\n", itr->port, length);
+        printf("connected to %hu\nlength: %d\n", itr->port, length);
         if (length > count) {
             count = length;
             trusted = addr;
         }
         log("found trusted chain");
     }
-    req = GET;
-    socklen_t addr_size = sizeof(trusted);
-    char *blockchain = new char[length+1];
-    log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&trusted, addr_size ));
-    log_error(recvfrom(sockfd, &blockchain, sizeof(count), 0, (struct sockaddr*)&trusted, &addr_size));
-    log("received blockchain");
-    blockchain[length] = '\0';
-    return json::parse(blockchain);
+    tr_addr->their_addr = trusted;
+    return length;
+}
+
+json Net::recv_blockchain(int sockfd){
+    addr_t addr;
+    addr.size_addr = sizeof(addr.their_addr);
+    log("recv blockchain...");
+
+    if (connections.size()  <= 1)  {
+        log("no nodes found");
+        return json{nullptr}; 
+    }
+
+    int length = recv_length(sockfd, &addr);
+    int req = GET;
+    char *buff = new char[length+1];
+    log_error(sendto(sockfd, &req, sizeof(int), 0, (const struct sockaddr*)&addr.their_addr, addr.size_addr));
+    log_error(recvfrom(sockfd, buff, length, 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
+    buff[length] = '\0';
+    log("done");
+    return json::parse(buff);
 }
 
 std::string Net::recv_ports(int sockfd){
