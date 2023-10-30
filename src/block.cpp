@@ -1,9 +1,5 @@
 #include "blockchain.h"
 
-void log(std::string message) {
-    printf("%s\n", message.c_str());
-}
-
 std::string pop_end(json str){
     std::string bl = str.dump(INDENT);
     bl.pop_back();
@@ -84,7 +80,6 @@ void Block::link_block(Block_t block) {
     bl += blockchain.dump(INDENT);
     if (bl[bl.size()-1] == ',')
         bl = pop_end(blockchain);
-    log("link block");
     bl += ",\n" + block_to_json(block).dump(INDENT) + ']';
     blockchain = json::parse(bl);
 }
@@ -113,9 +108,25 @@ Block_t Block::first_block() {
 }
 
 Block::Block(){
-    difficulty = 4;
+    difficulty = 2;
 }
 
 Block::Block(uint8_t dif){
     difficulty = dif;
+}
+
+Block_t Block::get_last(json blockchain){
+    json bl;
+    if (blockchain.is_array()) {
+        bl = blockchain[blockchain.size()-1];
+    } else {
+        bl = blockchain;
+    }
+    Block_t block;
+    bl.at("hash").get_to(block.header.hash);
+    bl.at("prev_hash").get_to(block.header.prev_hash);
+    bl.at("nonce").get_to(block.header.nonce);
+    bl.at("timestamp").get_to(block.header.timestamp);
+    bl.at("result").get_to(block.result);
+    return block;
 }

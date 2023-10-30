@@ -30,8 +30,8 @@ using json = nlohmann::json;
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
 #define INDENT 4
-const std::string node_addr =  "198.16.0.0.18";
-const char separator= '_';
+static const std::string node_addr =  "198.16.0.0.18";
+static const char separator= '_';
 
 enum req {
     LENGTH = 0,
@@ -84,10 +84,20 @@ class Block : public Hash {
         Block_t init_block(std::string prev_hash, uint8_t res);
         void link_block(Block_t block);
         Block_t first_block();
-        std::vector<Block_t> recv_blockchain();
     public:
         json get_blockchain();
         int get_length();
+        Block_t get_last(json blockchain);
+
+};
+class Vote : public Block {
+    public:
+        Vote(json blockchain, uint8_t res);
+    public: 
+        /* int get_signature(); */         
+        Block_t vote(Block_t last_block, uint8_t res);
+        /* bool verify(Block_t block, int signature); */
+
 
 };
 

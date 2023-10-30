@@ -1,6 +1,6 @@
 CXX=g++
 LDFLAGS=-lcrypto -static-libstdc++ -Iinclude -lpthread
-SRC=src/main.cpp src/block.cpp src/network.cpp
+SRC=src/main.cpp src/block.cpp src/network.cpp src/vote.cpp
 EXECUTABLE=voting
 .PHONY: all clean
 
