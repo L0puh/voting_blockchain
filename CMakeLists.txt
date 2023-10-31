@@ -6,9 +6,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcrypto -static-libstdc++ -Iinclude -lp
 
 include_directories(include)
 
-find_library(PTHREAD_LIB pthread)
-find_library(CRYPTO_LIB crypto)
 find_package(nlohmann_json REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(SRC main.cpp) 
 set(LIBS src/block.cpp src/network.cpp src/vote.cpp)
