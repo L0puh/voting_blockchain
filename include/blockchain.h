@@ -39,6 +39,8 @@ static const char separator= '_';
 enum req {
     LENGTH = 0,
     GET,  
+    VERIFY,
+    SIGN,
 };
 
 typedef uint16_t port_t;
@@ -98,10 +100,12 @@ class Vote : public Block {
         Vote(json blockchain, uint8_t res);
         Vote();
     public: 
+        std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> init_ctx(EVP_PKEY* key, int type);
         Block_t vote(Block_t last_block, uint8_t res);
         std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
         void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
-        bool verify(Block_t block, std::string signature, std::string pKey);
+        bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
+
 };
 
 class Net : public Block { 

@@ -15,23 +15,20 @@ int main (int argc, char* argv[]) {
     /* Net net(init_port(argc, argv), &block); */
     
     Vote v;
+    size_t sign_len; 
+
     Block_t bl = blockch.get_last(blockch.get_blockchain());
     Block_t block = v.vote(bl, get_vote());
-    printf("block done:\n%s\n", blockch.block_to_string(block).c_str());
+
     std::pair<EVP_PKEY*, EVP_PKEY*> k = v.generate_keys(2000);
-    size_t sing_len; 
     unsigned char sign[EVP_PKEY_size(k.first)];
-    v.get_signature(k.first, blockch.block_to_string(block), sign, &sing_len);
-     std::cout << "Signature HEX: ";
-    for (size_t i = 0; i < sing_len; i++)
-        std::printf("%02x", sign[i]);
-    std::cout << std::endl;
+    v.get_signature(k.first, blockch.block_to_string(block), sign, &sign_len);
+    int res = v.verify(blockch.block_to_string(block), sign, sign_len, k.second);
+
 
     // cleanup
     EVP_PKEY_free(k.first);
     EVP_PKEY_free(k.second);
-    return 0;
-
 
     return 0;
 }

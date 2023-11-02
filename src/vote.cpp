@@ -1,4 +1,6 @@
 #include "blockchain.h"
+#include <openssl/evp.h>
+#include <utility>
 
 Vote::Vote(json blockchain, uint8_t res) {
     Block_t bl = get_last(blockchain);
@@ -33,19 +35,33 @@ std::pair<EVP_PKEY*, EVP_PKEY*> Vote::generate_keys(int length){
 
 void Vote::get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len){
 
-    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
-    EVP_PKEY_CTX* pkey_ctx = EVP_PKEY_CTX_new(sKey, NULL);
-    EVP_PKEY_sign_init(pkey_ctx);
-    EVP_PKEY_CTX_set_signature_md(pkey_ctx, EVP_sha256());
-    EVP_DigestSignInit(md_ctx, &pkey_ctx, EVP_sha256(), NULL, sKey);
-    
-    EVP_DigestSign(md_ctx, sign, len, (const unsigned char*)block.c_str(), block.length());
+    std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> ctx = init_ctx(sKey, SIGN);
+    EVP_DigestSignInit(ctx.first, &ctx.second, EVP_sha256(), NULL, sKey);
+    EVP_DigestSign(ctx.first, sign, len, (const unsigned char*)block.c_str(), block.length());
 
-    EVP_MD_CTX_free(md_ctx);
+    EVP_MD_CTX_free(ctx.first);
 
 }
-bool Vote::verify(Block_t block, std::string signature, std::string pKey){
-    //TODO
-    return 0;
+
+std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> Vote::init_ctx(EVP_PKEY* key, int type){
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    EVP_PKEY_CTX* pkey_ctx = EVP_PKEY_CTX_new(key, NULL);
+
+    if (type == VERIFY) EVP_PKEY_verify_init(pkey_ctx);
+    else  EVP_PKEY_sign_init(pkey_ctx);
+
+    EVP_PKEY_CTX_set_signature_md(pkey_ctx, EVP_sha256());
+    return std::make_pair(md_ctx, pkey_ctx);
+}
+
+bool Vote::verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey){
+    std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> ctx = init_ctx(pKey, VERIFY);
+
+    EVP_DigestVerifyInit(ctx.first, &ctx.second, EVP_sha256(), NULL, pKey);
+    int res = EVP_DigestVerify(ctx.first, sign, len, (const unsigned char*)\
+            block.c_str(), block.length());
+
+    EVP_MD_CTX_free(ctx.first);
+    return res;
 
 }
