@@ -6,15 +6,32 @@ int get_port();
 uint8_t get_vote();
 
 int main (int argc, char* argv[]) {
-    Block block(2);
+    Block blockch(2);
     Block_t b, b2;
 
-    b = block.first_block();
-    b2 = block.init_block(b.header.hash, 0);
-    block.link_block(b2);
+    b = blockch.first_block();
+    b2 = blockch.init_block(b.header.hash, 0);
+    blockch.link_block(b2);
     /* Net net(init_port(argc, argv), &block); */
     
-    Vote vote(block.get_blockchain(), get_vote());
+    Vote v;
+    Block_t bl = blockch.get_last(blockch.get_blockchain());
+    Block_t block = v.vote(bl, get_vote());
+    printf("block done:\n%s\n", blockch.block_to_string(block).c_str());
+    std::pair<EVP_PKEY*, EVP_PKEY*> k = v.generate_keys(2000);
+    size_t sing_len; 
+    unsigned char sign[EVP_PKEY_size(k.first)];
+    v.get_signature(k.first, blockch.block_to_string(block), sign, &sing_len);
+     std::cout << "Signature HEX: ";
+    for (size_t i = 0; i < sing_len; i++)
+        std::printf("%02x", sign[i]);
+    std::cout << std::endl;
+
+    // cleanup
+    EVP_PKEY_free(k.first);
+    EVP_PKEY_free(k.second);
+    return 0;
+
 
     return 0;
 }

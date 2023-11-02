@@ -6,9 +6,12 @@
 #include <stdlib.h>
 #include <sstream>
 #include <string>
+#include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <openssl/rsa.h>
 #include <cstring>
 #include <ctime>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -93,12 +96,12 @@ class Block : public Hash {
 class Vote : public Block {
     public:
         Vote(json blockchain, uint8_t res);
+        Vote();
     public: 
-        /* int get_signature(); */         
         Block_t vote(Block_t last_block, uint8_t res);
-        /* bool verify(Block_t block, int signature); */
-
-
+        std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
+        void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
+        bool verify(Block_t block, std::string signature, std::string pKey);
 };
 
 class Net : public Block { 
