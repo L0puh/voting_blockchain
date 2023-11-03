@@ -25,7 +25,6 @@ int main (int argc, char* argv[]) {
     v.get_signature(k.first, blockch.block_to_string(block), sign, &sign_len);
     int res = v.verify(blockch.block_to_string(block), sign, sign_len, k.second);
 
-
     // cleanup
     EVP_PKEY_free(k.first);
     EVP_PKEY_free(k.second);

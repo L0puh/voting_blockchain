@@ -41,6 +41,8 @@ enum req {
     GET,  
     VERIFY,
     SIGN,
+    BLOCK,
+    SEND,
 };
 
 typedef uint16_t port_t;
@@ -113,6 +115,9 @@ class Net : public Block {
     public:
         Net(port_t port, Block *block);
         int init_socket(port_t port);
+
+        template<typename T>
+        int send_to(int sockfd, addr_t addr, T *data, int data_size);
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
     private:
@@ -134,6 +139,11 @@ class Net : public Block {
         int save_port(std::string addr_str);
     private:
         // miner
+        std::string recv_block(int sockfd);
+        std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len);
+        Block_t proof_of_work(std::string block);
+        void commit_block(int sockfd, Block_t block);
 
 };
+
 #endif 
