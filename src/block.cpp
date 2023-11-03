@@ -1,5 +1,4 @@
 #include "blockchain.h"
-
 std::string pop_end(json str){
     std::string bl = str.dump(INDENT);
     bl.pop_back();
@@ -85,9 +84,7 @@ void Block::link_block(Block_t block) {
 }
 
 json Block::get_blockchain(){
-    return blockchain;
-}
-
+    return blockchain; }
 Block_t Block::init_block(std::string prev_hash, uint8_t res) {
    block.result = res;
    
@@ -99,7 +96,6 @@ Block_t Block::init_block(std::string prev_hash, uint8_t res) {
    block.header.hash = create_hash(block.header.hash + block.header.nonce);
    return block;
 }
-
 Block_t Block::first_block() {
     Block_t b = init_block("0000000", -1);
     blockchain = block_to_json(b);
@@ -115,13 +111,7 @@ Block::Block(uint8_t dif){
     difficulty = dif;
 }
 
-Block_t Block::get_last(json blockchain){
-    json bl;
-    if (blockchain.is_array()) {
-        bl = blockchain[blockchain.size()-1];
-    } else {
-        bl = blockchain;
-    }
+Block_t Block::json_to_block(json bl){
     Block_t block;
     bl.at("hash").get_to(block.header.hash);
     bl.at("prev_hash").get_to(block.header.prev_hash);
@@ -129,4 +119,14 @@ Block_t Block::get_last(json blockchain){
     bl.at("timestamp").get_to(block.header.timestamp);
     bl.at("result").get_to(block.result);
     return block;
+}
+
+Block_t Block::get_last(json blockchain){
+    json bl;
+    if (blockchain.is_array()) {
+        bl = blockchain[blockchain.size()-1];
+    } else {
+        bl = blockchain;
+    }
+    return json_to_block(bl);
 }

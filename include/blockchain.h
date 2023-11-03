@@ -30,6 +30,7 @@ using json = nlohmann::json;
 
 // const 
 #define SERVICE_PORT 9000
+#define MINER_PORT 8000
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
 #define INDENT 4
@@ -86,6 +87,7 @@ class Block : public Hash {
     public:
         std::string block_to_string(Block_t block);
         json block_to_json(Block_t block);
+        Block_t json_to_block(json bl);
     public:
         uint32_t get_timestamp();
         Block_t init_block(std::string prev_hash, uint8_t res);
@@ -102,11 +104,11 @@ class Vote : public Block {
         Vote(json blockchain, uint8_t res);
         Vote();
     public: 
-        std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> init_ctx(EVP_PKEY* key, int type);
+        static std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> init_ctx(EVP_PKEY* key, int type);
         Block_t vote(Block_t last_block, uint8_t res);
         std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
         void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
-        bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
+        static bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
 
 };
 

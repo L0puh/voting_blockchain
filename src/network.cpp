@@ -12,8 +12,20 @@ Net::Net(port_t port, Block *block){
     if (port >= SERVICE_PORT) {
         log("detected service port");
         accept_connection(sockfd);
+    
+    } else if (port >= MINER_PORT) {
+        log("detected miner port");
+        std::string block = recv_block(sockfd); 
+        size_t len;
+        std::pair<unsigned char*, EVP_PKEY*> sign = recv_sign(sockfd, &len);
+        bool res = Vote::verify(block, sign.first, len, sign.second);
+        if (res){
+            Block_t bl = proof_of_work(block);
+            commit_block(sockfd, bl);
+        } else {
+            log("signature is not valid");
+        }
     } else { 
-
         std::thread th(&Net::recv_request, this, sockfd, block);
 
         log("detected client port");
@@ -236,7 +248,6 @@ void Net::convert_ports(std::string ports){
 // MINER //
 
 
-
 std::string Net::recv_block(int sockfd){
     addr_t addr;
     memset(&addr.their_addr, 0, addr.size_addr);
@@ -279,9 +290,8 @@ std::pair<unsigned char*, EVP_PKEY*> Net::recv_sign(int sockfd, size_t *len) {
 }
 
 Block_t Net::proof_of_work(std::string block) {
-    Block_t bl;
-    //TODO
-    return bl;
+    Block_t bl = json_to_block(block);
+    return init_block(bl.header.prev_hash, bl.result);
 }
 
 

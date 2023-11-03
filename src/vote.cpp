@@ -13,7 +13,12 @@ Vote::Vote(){
 
 }
 Block_t Vote::vote(Block_t last_block, uint8_t res){
-    Block_t block = init_block(last_block.header.hash, res); 
+    Block_t block;
+
+    block.header.prev_hash = last_block.header.hash;
+    block.header.timestamp = get_timestamp();
+    block.result = res;
+
     return block;
 }
 
