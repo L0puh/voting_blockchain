@@ -8,6 +8,13 @@ int Net::send_to(int sockfd, addr_t addr, T *data, int data_size) {
     return res;
 }
 
+template<typename T>
+int Net::recv_from(int sockfd, addr_t addr, T *data, int data_size) {
+    int res = recvfrom(sockfd, &data, data_size, 0, 
+                      (struct sockaddr*)&addr.their_addr, 
+                       &addr.size_addr);
+    return res;
+}
 Net::Net(port_t port, Block *block, int res){
     int sockfd = init_socket(port);
     if (port >= SERVICE_PORT) {

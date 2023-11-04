@@ -120,6 +120,10 @@ class Net : public Block {
 
         template<typename T>
         int send_to(int sockfd, addr_t addr, T *data, int data_size);
+
+        template<typename T>
+        int recv_from(int sockfd, addr_t addr, T *data, int data_size);
+
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
     public:
