@@ -115,16 +115,16 @@ class Vote : public Block {
 class Net : public Block { 
     std::vector<conn_t> connections;
     public:
-        Net(port_t port, Block *block);
+        Net(port_t port, Block *block, int res);
         int init_socket(port_t port);
 
         template<typename T>
         int send_to(int sockfd, addr_t addr, T *data, int data_size);
         addr_t init_addr(port_t port);
         conn_t convert_addr(std::string addr_str);
-    private:
-        void log_error(int result);
-        void log(std::string message);
+    public:
+        static void log_error(int result);
+        static void log(std::string message);
         void print_connections();
     private: 
         //  node
@@ -135,6 +135,8 @@ class Net : public Block {
         void recv_request(int sockfd, Block *block);
         std::string get_ports();
         int recv_length(int sockfd, addr_t *tr_addr);
+        void create_block(int sockfd, Block *block, int vote);
+        void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, unsigned char* key, size_t key_len);
     private:
         // service 
         void accept_connection(int sockfd);
@@ -142,7 +144,7 @@ class Net : public Block {
     private:
         // miner
         std::string recv_block(int sockfd);
-        std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len);
+        std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len_sign);
         Block_t proof_of_work(std::string block);
         void commit_block(int sockfd, Block_t block);
 

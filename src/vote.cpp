@@ -52,21 +52,21 @@ std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> Vote::init_ctx(EVP_PKEY* key, int type){
     EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
     EVP_PKEY_CTX* pkey_ctx = EVP_PKEY_CTX_new(key, NULL);
 
-    if (type == VERIFY) EVP_PKEY_verify_init(pkey_ctx);
-    else  EVP_PKEY_sign_init(pkey_ctx);
+    EVP_PKEY_sign_init(pkey_ctx);
 
     EVP_PKEY_CTX_set_signature_md(pkey_ctx, EVP_sha256());
     return std::make_pair(md_ctx, pkey_ctx);
 }
 
 bool Vote::verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey){
-    std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> ctx = init_ctx(pKey, VERIFY);
+    /* std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> ctx = init_ctx(pKey, VERIFY); */
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pKey);
 
-    EVP_DigestVerifyInit(ctx.first, &ctx.second, EVP_sha256(), NULL, pKey);
-    int res = EVP_DigestVerify(ctx.first, sign, len, (const unsigned char*)\
-            block.c_str(), block.length());
+    Net::log_error(EVP_DigestVerifyUpdate(ctx, block.c_str(), sizeof(block)));
+    int res = EVP_DigestVerifyFinal(ctx, sign, len);
 
-    EVP_MD_CTX_free(ctx.first);
+    EVP_MD_CTX_free(ctx);
     return res;
 
 }
