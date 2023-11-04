@@ -11,6 +11,6 @@ sh install.sh
 ```
 
 ### todo:
-- [  ] make tests
-- [  ] refactoring 
+- [ ] make tests
+- [ ] refactoring 
 
