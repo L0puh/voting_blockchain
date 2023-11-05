@@ -59,11 +59,9 @@ std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> Vote::init_ctx(EVP_PKEY* key, int type){
 }
 
 bool Vote::verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey){
-    /* std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> ctx = init_ctx(pKey, VERIFY); */
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pKey);
-
-    Net::log_error(EVP_DigestVerifyUpdate(ctx, block.c_str(), sizeof(block)));
+    Net::log_error(EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pKey));
+    Net::log_error(EVP_DigestVerifyUpdate(ctx, block.c_str(), block.length()));
     int res = EVP_DigestVerifyFinal(ctx, sign, len);
 
     EVP_MD_CTX_free(ctx);

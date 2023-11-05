@@ -1,4 +1,5 @@
 #include "blockchain.h"
+
 std::string pop_end(json str){
     std::string bl = str.dump(INDENT);
     bl.pop_back();
@@ -84,7 +85,8 @@ void Block::link_block(Block_t block) {
 }
 
 json Block::get_blockchain(){
-    return blockchain; }
+        return blockchain; 
+}
 Block_t Block::init_block(std::string prev_hash, uint8_t res) {
    block.result = res;
    
