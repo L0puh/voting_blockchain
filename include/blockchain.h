@@ -8,6 +8,8 @@
 #include <string>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <openssl/pem.h>
+#include <openssl/bio.h>
 #include <openssl/rsa.h>
 #include <cstring>
 #include <ctime>
@@ -136,7 +138,7 @@ class Net : public Block {
         std::string get_ports();
         int recv_length(int sockfd, addr_t *tr_addr);
         void create_block(int sockfd, Block *block, int vote);
-        void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, unsigned char* key, size_t key_len);
+        void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, char* key, long key_len);
     private:
         // service 
         void accept_connection(int sockfd);

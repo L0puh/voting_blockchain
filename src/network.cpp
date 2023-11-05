@@ -8,6 +8,15 @@ int Net::send_to(int sockfd, addr_t addr, T *data, int data_size) {
     return res;
 }
 
+void DEBUG_print_sign(unsigned char* sign, int len) {
+    printf("SIGNATURE:\n");
+    for (int i=0; i < len; i++)
+    {
+        printf("%02x", sign[i]);
+    }
+    printf("\n");
+}
+
 Net::Net(port_t port, Block *block, int res){
     int sockfd = init_socket(port);
     if (port >= SERVICE_PORT) {
@@ -124,21 +133,26 @@ int Net::save_port(std::string addr_str) {
 void Net::create_block(int sockfd, Block *blockch, int vote){
     //TODO:REFACTOR
     Vote v;
-    size_t sign_len; 
     log("create block...");
 
     Block_t bl = blockch->get_last(blockch->get_blockchain());
     Block_t block = v.vote(bl, vote); 
 
-    std::pair<EVP_PKEY*, EVP_PKEY*> k = v.generate_keys(1000);
+    std::pair<EVP_PKEY*, EVP_PKEY*> k = v.generate_keys(2000);
 
     unsigned char sign[EVP_PKEY_size(k.first)];
-    unsigned char* buffer = new unsigned char[1024];
-    v.get_signature(k.first, blockch->block_to_string(block), sign, &sign_len);
+    size_t sign_len; 
 
-    int key_len = i2d_PublicKey(k.second, &buffer);
-    printf("KEY: %s; LEN: %d, SIGN: %s\n", buffer, key_len, sign);
-    send_miner(sockfd, block, sign, sign_len, buffer, key_len);
+    v.get_signature(k.first, blockch->block_to_json(block).dump(INDENT), sign, &sign_len);
+
+    BIO* bio = BIO_new(BIO_s_mem());
+    log_error(PEM_write_bio_PUBKEY(bio, k.second));
+    char* data;
+    long key_len = BIO_get_mem_data(bio, &data);
+
+    printf("KEY: %s;\n BLOCK:%s\n", data, blockch->block_to_json(block).dump(INDENT).c_str());
+    DEBUG_print_sign(sign, sign_len);
+    send_miner(sockfd, block, sign, sign_len, data, key_len);
     
     // cleanup
     EVP_PKEY_free(k.first);
@@ -275,23 +289,24 @@ void Net::convert_ports(std::string ports){
     save_port(ports);
 }
 
-void Net::send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, unsigned char* key, size_t key_len){
+void Net::send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, char* key, long key_len){
     addr_t addr = init_addr(MINER_PORT);
-    std::string bl_str = block_to_string(block);
+
+    std::string bl_str = block_to_json(block).dump(INDENT);
     int size_bl = bl_str.length(), req = BLOCK;
+
     send_to(sockfd, addr, &req, sizeof(int));
     send_to(sockfd, addr, &size_bl, sizeof(int));
-    send_to(sockfd, addr, bl_str.c_str(), sizeof(bl_str));
+    send_to(sockfd, addr, bl_str.c_str(), bl_str.length());
     log("sent block");
     req = SIGN;
 
     send_to(sockfd, addr, &req, sizeof(int));
     send_to(sockfd, addr, &sign_len, sizeof(int));
 
-    printf("####\nDEBUG: key = %c; key_len = %lu\n", *key, sizeof(*key));
 
     send_to(sockfd, addr, sign, sign_len);
-    send_to(sockfd, addr, &key_len, sizeof(int));
+    send_to(sockfd, addr, &key_len, sizeof(long));
     send_to(sockfd, addr, key, key_len);
     log("sent sign and key");
 }
@@ -310,6 +325,7 @@ std::string Net::recv_block(int sockfd){
             char* block = new char[block_size+1];
             log_error(recvfrom(sockfd, block, block_size, 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
             block[block_size] = '\0';
+            printf("DEBUG: BLOCK\n%s\n", block);
             log("recv block: done");
             return block;
         }
@@ -321,27 +337,28 @@ std::pair<unsigned char*, EVP_PKEY*> Net::recv_sign(int sockfd, size_t *len_sign
     addr_t addr;
     memset(&addr.their_addr, 0, addr.size_addr);
     addr.size_addr = sizeof(addr.their_addr);
-    int bytes, req, size_sign; int key_size;
+    int bytes, req, size_sign; long key_size;
     while((bytes = recvfrom(sockfd, &req, sizeof(int), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr)) != -1){
         if ( req == SIGN ){
             log_error(recvfrom(sockfd, &size_sign, sizeof(int), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
-            unsigned char* sign = new unsigned char[size_sign];
+            unsigned char* sign = new unsigned char[size_sign+1];
             log_error(recvfrom(sockfd, sign, size_sign, 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
             sign[size_sign] = '\0';
             log("recv sign");
+            
 
-            log_error(recvfrom(sockfd, &key_size, sizeof(int), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
-            unsigned char* buff = new unsigned char[key_size+1];
+            log_error(recvfrom(sockfd, &key_size, sizeof(long), 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
+            char* buff = new char[key_size+1];
             log_error(recvfrom(sockfd, buff, key_size, 0, (struct sockaddr*)&addr.their_addr, &addr.size_addr));
             buff[key_size]= '\0';
 
-            printf("DEBUG:\nkey=%s; size:%lu\n", buff, sizeof(buff));
-            log("recv key");
-            log("convert key...");
+            // CONVERT
+            BIO* bio = BIO_new_mem_buf(buff, key_size);
+            printf("\nKEY: %s\n", buff);
+            DEBUG_print_sign(sign, size_sign);
             *len_sign = size_sign;
-            const unsigned char** p_buff = new const unsigned char*;
-            *p_buff = buff;
-            EVP_PKEY* key = d2i_PublicKey(EVP_PKEY_RSA, nullptr, p_buff, key_size);
+            EVP_PKEY* key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+
             return std::make_pair(sign, key);
         }
     }
