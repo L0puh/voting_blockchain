@@ -91,7 +91,7 @@ class Block : public Hash {
         json block_to_json(Block_t block);
         Block_t json_to_block(json bl);
     public:
-        uint32_t get_timestamp();
+        static uint32_t get_timestamp();
         Block_t init_block(std::string prev_hash, uint8_t res);
         void link_block(Block_t block);
         Block_t first_block();
@@ -107,9 +107,9 @@ class Vote : public Block {
         Vote();
     public: 
         static std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> init_ctx(EVP_PKEY* key, int type);
-        Block_t vote(Block_t last_block, uint8_t res);
-        std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
-        void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
+        static Block_t vote(Block_t last_block, uint8_t res);
+        static std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
+        static void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
         static bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
 
 };
