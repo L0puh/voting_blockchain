@@ -1,15 +1,11 @@
 #include "blockchain.h"
-#include <array>
-#include <openssl/evp.h>
-#include <utility>
 
 template<typename T> 
 int Net::send_to(int sockfd, addr_t addr, T *data, int data_size) {
     int res = sendto(sockfd, data, data_size, 0, 
                     (const struct sockaddr*)&addr.their_addr, 
                     addr.size_addr);
-    return res;
-}
+    return res; }
 
 template<typename T>
 int Net::recv_from(int sockfd, addr_t addr, T *data, int data_size) {
@@ -19,7 +15,7 @@ int Net::recv_from(int sockfd, addr_t addr, T *data, int data_size) {
     return res;
 }
 
-Net::Net(port_t port, Block *block, int res){
+Net::Net(port_t port, Block *block){
     int sockfd = init_socket(port);
     if (port >= SERVICE_PORT) {
         log("detected service port");
@@ -38,6 +34,7 @@ Net::Net(port_t port, Block *block, int res){
             send_response(sockfd, res, &addr);
         } else log("signature is not valid");
     } else { 
+        int res = get_vote();
         std::thread th(&Net::recv_request, this, sockfd, block);
 
         log("detected client port");

@@ -4,7 +4,6 @@
 //block
 #include <stdio.h>
 #include <stdlib.h>
-#include <sstream>
 #include <string>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
@@ -36,6 +35,7 @@ using json = nlohmann::json;
 #define ADDR_SIZE 11 
 #define PORT_SIZE 4
 #define INDENT 4
+
 static const std::string node_addr =  "198.16.0.0.18";
 static const char separator= '_';
 
@@ -74,25 +74,25 @@ struct conn_t {
     std::string addr;
     port_t port; 
 };
-class Hash {
-    public:
-        std::string create_hash(std::string data);
-        std::string get_nonce(std::string blockHash, uint8_t difficulty);
-};
 
-class Block : public Hash {  
+static std::string create_hash(std::string data);
+static std::string get_nonce(std::string blockHash, uint8_t difficulty);
+uint8_t get_vote();
+port_t init_port(int argc, char* argv[]);
+int get_port();
+
+class Block {  
     private:
         Block_t block; 
         uint8_t difficulty;
         json blockchain;
-
     public:
         Block(uint8_t difficulty);
         Block();
     public:
-        std::string block_to_string(Block_t block);
-        json block_to_json(Block_t block);
-        Block_t json_to_block(json bl);
+        static std::string block_to_string(Block_t block);
+        static json block_to_json(Block_t block);
+        static Block_t json_to_block(json bl);
     public:
         static uint32_t get_timestamp();
         Block_t init_block(std::string prev_hash, uint8_t res);
@@ -106,7 +106,7 @@ class Block : public Hash {
 };
 class Vote : public Block {
     public:
-        Vote(json blockchain, uint8_t res);
+        Vote(json blockchain);
         Vote();
     public: 
         static std::pair<EVP_MD_CTX*, EVP_PKEY_CTX*> init_ctx(EVP_PKEY* key, int type);
@@ -120,7 +120,7 @@ class Vote : public Block {
 class Net : public Block { 
     std::vector<conn_t> connections;
     public:
-        Net(port_t port, Block *block, int res);
+        Net(port_t port, Block *block);
         int init_socket(port_t port);
 
         template<typename T>

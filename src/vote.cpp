@@ -1,10 +1,8 @@
 #include "blockchain.h"
-#include <openssl/evp.h>
-#include <utility>
 
-Vote::Vote(json blockchain, uint8_t res) {
+Vote::Vote(json blockchain) {
     Block_t bl = get_last(blockchain);
-    Block_t block = vote(bl, res);
+    Block_t block = vote(bl, get_vote());
     printf("block done:\n%s\n", block_to_string(block).c_str());
     std::pair<EVP_PKEY*, EVP_PKEY*> k =generate_keys(100);
 

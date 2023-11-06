@@ -13,7 +13,7 @@ int Block::get_length(){
 }
 
 
-std::string Hash::get_nonce(std::string blockHash, uint8_t difficulty){
+std::string get_nonce(std::string blockHash, uint8_t difficulty){
     std::string target = "";
 
     for (int i=0; i < difficulty; i++) {
@@ -40,7 +40,7 @@ std::string Hash::get_nonce(std::string blockHash, uint8_t difficulty){
     }
 }
 
-std::string Hash::create_hash(std::string data) {
+std::string create_hash(std::string data) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char*)data.c_str(), data.size(), hash);
     std::ostringstream s;

@@ -1,9 +1,6 @@
 #include "blockchain.h"
 #include <iostream>
 
-port_t init_port(int argc, char* argv[]);
-int get_port();
-uint8_t get_vote();
 
 int main (int argc, char* argv[]) {
     Block blockch(2);
@@ -12,8 +9,7 @@ int main (int argc, char* argv[]) {
     b = blockch.first_block();
     b2 = blockch.init_block(b.header.hash, 0);
     blockch.link_block(b2);
-    Net net(init_port(argc, argv), &blockch, get_vote()); //refactor
-    
+    Net net(init_port(argc, argv), &blockch); 
 
     return 0;
 }
