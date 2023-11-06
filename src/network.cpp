@@ -1,4 +1,5 @@
 #include "blockchain.h"
+#include <array>
 #include <openssl/evp.h>
 #include <utility>
 
@@ -25,15 +26,16 @@ Net::Net(port_t port, Block *block, int res){
         accept_connection(sockfd);
     } else if (port >= MINER_PORT) {
         log("detected miner port");
-        std::string block = recv_block(sockfd); 
+        addr_t addr;
+        std::string block = recv_block(sockfd, &addr); 
         size_t len_sign;
         std::pair<unsigned char*, EVP_PKEY*> sign = recv_sign(sockfd, &len_sign);
         bool res = Vote::verify(block, sign.first, len_sign, sign.second);
         if (res){
             log("signature is valid");
             Block_t bl = proof_of_work(block);
-            commit_block(sockfd, bl);
-            log("block sent");
+            int res = commit_block(sockfd, bl);
+            send_response(sockfd, res, &addr);
         } else log("signature is not valid");
     } else { 
         std::thread th(&Net::recv_request, this, sockfd, block);
@@ -56,7 +58,7 @@ Net::Net(port_t port, Block *block, int res){
 
 // SERVICE //
 void Net::accept_connection(int sockfd){
-    int bytes;
+    int bytes, req= OK;
     addr_t addr;
     char addr_str[20];
     std::string init_addr = node_addr + ":9100";
@@ -70,6 +72,7 @@ void Net::accept_connection(int sockfd){
         save_port(addr_str);
         if (bytes > 0) {
            int ports_size = ports.size();
+           log_error(send_to(sockfd, addr, &req, sizeof(int)));
            log_error(send_to(sockfd, addr , &ports_size, sizeof(int)));
            log_error(send_to(sockfd, addr, ports.c_str(), ports_size));
            log("sent ports");
@@ -150,37 +153,60 @@ void Net::create_block(int sockfd, Block *blockch, int vote){
 }
 
 void Net::connect_service(port_t port, int sockfd){
-    int res;
+    int res, req;
     std::string buff  = node_addr + ":" + std::to_string(port);
     addr_t addr = init_addr(SERVICE_PORT);
     log_error(send_to(sockfd, addr, buff.c_str(), sizeof(buff)));
+    while ((res = recv_from(sockfd, addr, &req, sizeof(int)))){
+        if (req == OK) break;
+        else
+            log_error(send_to(sockfd, addr, buff.c_str(), sizeof(buff)));
+    }
     log("connected to the service");
 }
 
 
 void Net::recv_request(int sockfd, Block* block) {
     log("* wait requests...");
-    int bytes, req;
+    int bytes, req, length;
     addr_t addr;
 
     memset(&addr.their_addr, 0, sizeof(addr.their_addr));
     addr.size_addr = sizeof(addr.their_addr);
     while((bytes = recv_from(sockfd, addr, &req, sizeof(int))) != -1){
         std::string bl = block->get_blockchain().dump(INDENT);
-        if (req == LENGTH) {
-            log("request: length");
-            int length = block->get_length();
-            log_error(send_to(sockfd, addr, &length, sizeof(int)));
-            log("sent:    length");
-        } else if (req == GET) {
-            log("request: get");
-            if (bl.length() == block->get_length()){
-                log_error(send_to(sockfd, addr, bl.c_str(), bl.length()));
+        switch(req) {
+            case LENGTH:
+            {
+                log("request: length");
+                length = block->get_length();
+                log_error(send_to(sockfd, addr, &length, sizeof(int)));
+                log("sent:    length");
+                break;
             }
-            log("sent:    blockchain");
-        } else if (req == SEND) {
-            log("get new block");
-            //TODO: verify and get block -> make blockchain
+            case GET:
+            {
+                log("request: get");
+                if (bl.length() == block->get_length()){
+                    log_error(send_to(sockfd, addr, bl.c_str(), bl.length()));
+                }
+                log("sent:    blockchain");
+                break;
+            }
+            case SEND:
+            {
+                log("get new block");
+                //TODO: verify and get block -> make blockchain
+                break;
+            }
+            case NOT_VALID:
+            case VALID:
+            {
+                printf("blockchain is %d\n", req);
+                break;
+            }
+            default:
+                log("get unknown request");
         }
     } 
     log_error(bytes);
@@ -296,7 +322,7 @@ void Net::send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign
 // MINER //
 
 
-std::string Net::recv_block(int sockfd){
+std::string Net::recv_block(int sockfd, addr_t *user){
     addr_t addr;
     memset(&addr.their_addr, 0, sizeof(addr.their_addr));
     addr.size_addr = sizeof(addr.their_addr);
@@ -307,6 +333,7 @@ std::string Net::recv_block(int sockfd){
             char* block = new char[block_size];
             log_error(recv_from(sockfd, addr, block, block_size));
             log("recv block");
+            *user = addr;
             return block;
         }
     }
@@ -347,8 +374,9 @@ Block_t Net::proof_of_work(std::string block) {
 }
 
 
-void Net::commit_block(int sockfd, Block_t block){
-    int req = SEND;
+int Net::commit_block(int sockfd, Block_t block){
+    int req = SEND, res;
+    std::vector<int> results;
     link_block(block);
     std::string bl = get_blockchain().dump(INDENT);
     addr_t addr;
@@ -356,9 +384,27 @@ void Net::commit_block(int sockfd, Block_t block){
         addr = init_addr(i.port);
         log_error(send_to(sockfd, addr, &req, sizeof(int)));
         log_error(send_to(sockfd, addr, bl.c_str(), sizeof(bl)));
+        log_error(recv_from(sockfd, addr, &res, sizeof(int)));
+        results.push_back(res);
     }
+    res = 0;
+    for (auto& i: results){
+        res += i;
+    }
+    return res;
 }
 
+void Net::send_response(int sockfd, int res, addr_t *addr){
+    int req=NOT_VALID;
+    if (res == 0){
+        log_error(send_to(sockfd, *addr,  &req, sizeof(int) ));
+        return;
+    }
+    req = VALID;
+    if ( res == connections.size() or res > connections.size()/2){
+        log_error(send_to(sockfd, *addr, &req, sizeof(int)));
+    } 
+}
 
 // init 
 

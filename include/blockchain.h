@@ -46,6 +46,9 @@ enum req {
     SIGN,
     BLOCK,
     SEND,
+    OK,
+    VALID,
+    NOT_VALID
 };
 
 typedef uint16_t port_t;
@@ -148,10 +151,11 @@ class Net : public Block {
         int save_port(std::string addr_str);
     private:
         // miner
-        std::string recv_block(int sockfd);
+        std::string recv_block(int sockfd, addr_t *addr);
         std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len_sign);
         Block_t proof_of_work(std::string block);
-        void commit_block(int sockfd, Block_t block);
+        int commit_block(int sockfd, Block_t block);
+        void send_response(int sockfd, int res, addr_t *addr);
 
 };
 
