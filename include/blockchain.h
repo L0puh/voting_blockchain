@@ -114,6 +114,7 @@ class Vote : public Block {
         static std::pair<EVP_PKEY*, EVP_PKEY*> generate_keys(int length);
         static void get_signature(EVP_PKEY* sKey, std::string block, unsigned char* sign, size_t* len);
         static bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
+        static bool check(json blchain, json block);
 
 };
 

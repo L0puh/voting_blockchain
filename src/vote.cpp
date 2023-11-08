@@ -66,3 +66,21 @@ bool Vote::verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* 
     return res;
 
 }
+
+bool Vote::check_block(json bchain, json block){
+    if (block["hash"] != "0" and bchain.is_array()){
+        for (int i=0; i < bchain.size(); i++){
+            json b = bchain[i];
+            if (b["hash"] == block["prev_hash"]){
+                return true;
+            }
+        }
+    } else if (bchain["hash"] == block["prev_hash"] ){
+        return true;
+    }
+    return false;
+}
+
+
+
+

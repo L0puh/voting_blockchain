@@ -22,12 +22,14 @@ Net::Net(port_t port, Block *block){
         accept_connection(sockfd);
     } else if (port >= MINER_PORT) {
         log("detected miner port");
+        json blockchain = recv_blockchain(sockfd); 
         addr_t addr;
         std::string block = recv_block(sockfd, &addr); 
         size_t len_sign;
         std::pair<unsigned char*, EVP_PKEY*> sign = recv_sign(sockfd, &len_sign);
         bool res = Vote::verify(block, sign.first, len_sign, sign.second);
-        if (res){
+
+        if (res and Vote::check(blockchain, json::parse(block)) ){
             log("signature is valid");
             Block_t bl = proof_of_work(block);
             int res = commit_block(sockfd, bl);
