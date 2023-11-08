@@ -1,22 +1,62 @@
 #include "blockchain.h"
 
+void miner(int sockfd){
+
+    log("detected miner port");
+    json blockchain = recv_blockchain(sockfd); 
+    addr_t addr;
+    std::string block = recv_block(sockfd, &addr); 
+    size_t len_sign;
+    std::pair<unsigned char*, EVP_PKEY*> sign = recv_sign(sockfd, &len_sign);
+    bool res = Vote::verify(block, sign.first, len_sign, sign.second);
+
+    if (res and check_block(blockchain, json::parse(block))){
+        log("signature is valid");
+        Block_t bl =proof_of_work(block);
+        int res = commit_block(sockfd, bl);
+        send_response(sockfd, res, &addr);
+    } else 
+        log("signature is not valid");
+}
+
+void service(int sockfd){
+    log("detected service port");
+    accept_connection(sockfd);
+}
+
+void node(int sockfd, port_t port){
+    int res = get_vote();
+    
+    std::thread th(recv_request, sockfd);
+
+    log("detected client port");
+    connect_service(port, sockfd);
+    std::string ports = recv_ports(sockfd); 
+    convert_ports(ports);
+    json blockchain = recv_blockchain(sockfd);
+    create_block(sockfd, res);
+    th.detach();
+    while(true){
+        //FIXME
+    }
+}
+
 std::string pop_end(json str){
     std::string bl = str.dump(INDENT);
     bl.pop_back();
     return bl;
 }
 
-
-int Block::get_length(){
+int get_length(){
     std::string bl = blockchain.dump(INDENT);
     return bl.size();
 }
 
 
-std::string get_nonce(std::string blockHash, uint8_t difficulty){
+std::string get_nonce(std::string blockHash, uint8_t DIFFICULTY){
     std::string target = "";
 
-    for (int i=0; i < difficulty; i++) {
+    for (int i=0; i < DIFFICULTY; i++) {
         target += '0'; 
     }
 
@@ -33,7 +73,7 @@ std::string get_nonce(std::string blockHash, uint8_t difficulty){
             s << std::hex << (int)hash[i];
         }
         std::string hashStr = s.str();
-        if (hashStr.substr(0, difficulty) == target) {
+        if (hashStr.substr(0, DIFFICULTY) == target) {
             return nonceStr;
         }
         nonce++;
@@ -51,12 +91,12 @@ std::string create_hash(std::string data) {
     return hashStr;
 }
 
-uint32_t Block::get_timestamp() {
+uint32_t get_timestamp() {
     time_t t = time(0);
     return t;
 }
 
-std::string Block::block_to_string(Block_t block) {
+std::string block_to_string(Block_t block) {
     std::string data = 
         block.header.prev_hash +  block.header.nonce +
         block.header.hash + std::to_string(block.header.timestamp) + 
@@ -64,7 +104,7 @@ std::string Block::block_to_string(Block_t block) {
     return data;
 }
 
-json Block::block_to_json(Block_t block){
+json block_to_json(Block_t block){
     json bl = {
         {"hash", block.header.hash},
         {"prev_hash", block.header.prev_hash},
@@ -75,7 +115,7 @@ json Block::block_to_json(Block_t block){
     return bl;
 }
 
-void Block::link_block(Block_t block) {
+void link_block(Block_t block) {
     std::string bl = "[";
     bl += blockchain.dump(INDENT);
     if (bl[bl.size()-1] == ',')
@@ -84,36 +124,29 @@ void Block::link_block(Block_t block) {
     blockchain = json::parse(bl);
 }
 
-json Block::get_blockchain(){
+json get_blockchain(){
         return blockchain; 
 }
-Block_t Block::init_block(std::string prev_hash, uint8_t res) {
+Block_t init_block(std::string prev_hash, uint8_t res) {
+   Block_t block;
    block.result = res;
    
    header_t h{.prev_hash = prev_hash, 
               .timestamp = get_timestamp(), 
               .hash = create_hash(block_to_string(block))};
    block.header = h;
-   block.header.nonce = get_nonce(block.header.hash, difficulty); 
+   block.header.nonce = get_nonce(block.header.hash, DIFFICULTY); 
    block.header.hash = create_hash(block.header.hash + block.header.nonce);
    return block;
 }
-Block_t Block::first_block() {
+Block_t first_block() {
     Block_t b = init_block("0000000", -1);
     blockchain = block_to_json(b);
     return b;
     
 }
 
-Block::Block(){
-    difficulty = 2;
-}
-
-Block::Block(uint8_t dif){
-    difficulty = dif;
-}
-
-Block_t Block::json_to_block(json bl){
+Block_t json_to_block(json bl){
     Block_t block;
     bl.at("hash").get_to(block.header.hash);
     bl.at("prev_hash").get_to(block.header.prev_hash);
@@ -123,7 +156,7 @@ Block_t Block::json_to_block(json bl){
     return block;
 }
 
-Block_t Block::get_last(json blockchain){
+Block_t get_last(json blockchain){
     json bl;
     if (blockchain.is_array()) {
         bl = blockchain[blockchain.size()-1];
@@ -132,3 +165,19 @@ Block_t Block::get_last(json blockchain){
     }
     return json_to_block(bl);
 }
+
+
+bool check_block(json bchain, json block){
+    if (block["hash"] != "0" and bchain.is_array()){
+        for (int i=0; i < bchain.size(); i++){
+            json b = bchain[i];
+            if (b["hash"] == block["prev_hash"]){
+                return true;
+            }
+        }
+    } else if (bchain["hash"] == block["prev_hash"] ){
+        return true;
+    }
+    return false;
+}
+

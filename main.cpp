@@ -3,13 +3,18 @@
 
 
 int main (int argc, char* argv[]) {
-    Block blockch(2);
     Block_t b, b2;
+    b = first_block();
+    b2 = init_block(b.header.hash, 1);
+    link_block(b2);
+    json blockchain = get_blockchain();
+    printf("%s\n", blockchain.dump(INDENT).c_str());
+    port_t port;
+    int sockfd = init_socket(port);
 
-    b = blockch.first_block();
-    b2 = blockch.init_block(b.header.hash, 0);
-    blockch.link_block(b2);
-    Net net(init_port(argc, argv), &blockch); 
+    if (port >= SERVICE_PORT) service(sockfd);
+    else if(port == MINER_PORT) miner(sockfd);
+    else node(sockfd, port);
 
     return 0;
 }
