@@ -8,10 +8,8 @@ int main (int argc, char* argv[]) {
     b2 = init_block(b.header.hash, 1);
     link_block(b2);
     json blockchain = get_blockchain();
-    printf("%s\n", blockchain.dump(INDENT).c_str());
-    port_t port;
+    port_t port = init_port(argc, argv);
     int sockfd = init_socket(port);
-
     if (port >= SERVICE_PORT) service(sockfd);
     else if(port == MINER_PORT) miner(sockfd);
     else node(sockfd, port);

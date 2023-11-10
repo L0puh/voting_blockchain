@@ -4,15 +4,19 @@ void miner(int sockfd){
 
     log("detected miner port");
     json blockchain = recv_blockchain(sockfd); 
+    
     addr_t addr;
     std::string block = recv_block(sockfd, &addr); 
     size_t len_sign;
     std::pair<unsigned char*, EVP_PKEY*> sign = recv_sign(sockfd, &len_sign);
-    bool res = Vote::verify(block, sign.first, len_sign, sign.second);
-
-    if (res and check_block(blockchain, json::parse(block))){
+    bool res = Vote::verify(block, sign.first, len_sign, sign.second), res2 = true;
+    std::string str_bl = blockchain.dump(INDENT);
+    if (blockchain.is_null()) {
+        res2 = check_block(blockchain, json::parse(block));
+    }
+    if (res and res2){
         log("signature is valid");
-        Block_t bl =proof_of_work(block);
+        Block_t bl = proof_of_work(block);
         int res = commit_block(sockfd, bl);
         send_response(sockfd, res, &addr);
     } else 
@@ -27,7 +31,6 @@ void service(int sockfd){
 void node(int sockfd, port_t port){
     int res = get_vote();
     
-    std::thread th(recv_request, sockfd);
 
     log("detected client port");
     connect_service(port, sockfd);
@@ -35,6 +38,7 @@ void node(int sockfd, port_t port){
     convert_ports(ports);
     json blockchain = recv_blockchain(sockfd);
     create_block(sockfd, res);
+    std::thread th(recv_request, sockfd);
     th.detach();
     while(true){
         //FIXME

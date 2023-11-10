@@ -8,16 +8,16 @@ int send_to(int sockfd, addr_t addr, T *data, int data_size) {
     return res; }
 
 template<typename T>
-int recv_from(int sockfd, addr_t addr, T *data, int data_size) {
-    int res = recvfrom(sockfd, &data, data_size, 0, 
-                      (struct sockaddr*)&addr.their_addr, 
-                       &addr.size_addr);
+int recv_from(int sockfd, addr_t *addr, T *data, int data_size) {
+    int res = recvfrom(sockfd, data, data_size, 0, 
+                      (struct sockaddr*)&addr->their_addr, 
+                       &addr->size_addr);
     return res;
 }
 
 // SERVICE //
 void accept_connection(int sockfd){
-    int bytes, req= OK;
+    int bytes, req = OK;
     addr_t addr;
     char addr_str[20];
     std::string init_addr = node_addr + ":9100";
@@ -25,14 +25,14 @@ void accept_connection(int sockfd){
     memset(&addr.their_addr, 0, sizeof(addr.their_addr));
     addr.size_addr = sizeof(addr.their_addr);
     save_port(init_addr);
-
-    while ((bytes = recv_from(sockfd, addr, &addr_str, 20)) != -1){
+    log("* accept connections...");
+    while ((bytes = recv_from(sockfd, &addr, &addr_str, 20)) != -1){
         std::string ports = get_ports();
         save_port(addr_str);
         if (bytes > 0) {
            int ports_size = ports.size();
            log_error(send_to(sockfd, addr, &req, sizeof(int)));
-           log_error(send_to(sockfd, addr , &ports_size, sizeof(int)));
+           log_error(send_to(sockfd, addr ,&ports_size, sizeof(int)));
            log_error(send_to(sockfd, addr, ports.c_str(), ports_size));
            log("sent ports");
         }
@@ -116,12 +116,15 @@ void connect_service(port_t port, int sockfd){
     std::string buff  = node_addr + ":" + std::to_string(port);
     addr_t addr = init_addr(SERVICE_PORT);
     log_error(send_to(sockfd, addr, buff.c_str(), sizeof(buff)));
-    while ((res = recv_from(sockfd, addr, &req, sizeof(int)))){
-        if (req == OK) break;
+    log("* connect service...");
+    while ((res = recv_from(sockfd, &addr, &req, sizeof(int)))){
+        if (req == OK) {
+            log("connected to the service");
+            break;
+        }
         else
             log_error(send_to(sockfd, addr, buff.c_str(), sizeof(buff)));
     }
-    log("connected to the service");
 }
 
 
@@ -132,55 +135,55 @@ void recv_request(int sockfd) {
 
     memset(&addr.their_addr, 0, sizeof(addr.their_addr));
     addr.size_addr = sizeof(addr.their_addr);
-    while((bytes = recv_from(sockfd, addr, &req, sizeof(int))) != -1){
-        std::string bl = get_blockchain().dump(INDENT);
-        switch(req) {
-            case LENGTH:
-            {
-                log("request: length");
-                length = get_length();
-                log_error(send_to(sockfd, addr, &length, sizeof(int)));
-                log("sent:    length");
-                break;
-            }
-            case GET:
-            {
-                log("request: get");
-                if (bl.length() == get_length()){
-                    log_error(send_to(sockfd, addr, bl.c_str(), bl.length()));
+        while((bytes = recv_from(sockfd, &addr, &req, sizeof(int))) != -1){
+            std::string bl = get_blockchain().dump(INDENT);
+            switch(req) {
+                case LENGTH:
+                {
+                    log("request: length");
+                    length = get_length();
+                    log_error(send_to(sockfd, addr, &length, sizeof(int)));
+                    log("sent:    length");
+                    break;
                 }
-                log("sent:    blockchain");
-                break;
+                case GET:
+                {
+                    log("request: get");
+                    if (bl.length() == get_length()){
+                        log_error(send_to(sockfd, addr, bl.c_str(), bl.length()));
+                    }
+                    log("sent:    blockchain");
+                    break;
+                }
+                case SEND:
+                {
+                    log("get new block");
+                    //TODO: verify and get block -> make blockchain
+                    break;
+                }
+                case NOT_VALID:
+                case VALID:
+                {
+                    printf("blockchain is %d\n", req);
+                    break;
+                }
+                default:
+                    log("get unknown request");
             }
-            case SEND:
-            {
-                log("get new block");
-                //TODO: verify and get block -> make blockchain
-                break;
-            }
-            case NOT_VALID:
-            case VALID:
-            {
-                printf("blockchain is %d\n", req);
-                break;
-            }
-            default:
-                log("get unknown request");
-        }
-    } 
-    log_error(bytes);
-}
+        } 
+        log_error(bytes);
+    }
 
-int recv_length(int sockfd, addr_t *tr_addr){
-    int length = 0, req = LENGTH, count=0;
-    std::vector<conn_t>::iterator itr = connections.begin();
-    itr++; //skip init ports
-    struct sockaddr_in trusted;
-    for (; itr != connections.end(); itr++){
-        addr_t addr = init_addr(itr->port);
-        addr.size_addr = sizeof(addr.their_addr);
-        log_error(send_to(sockfd, addr, &req, sizeof(int)));
-        log_error(recv_from(sockfd, addr, &length, sizeof(int)));
+    int recv_length(int sockfd, addr_t *tr_addr){
+        int length = 0, req = LENGTH, count=0;
+        std::vector<conn_t>::iterator itr = connections.begin();
+        itr++; //skip init ports
+        struct sockaddr_in trusted;
+        for (; itr != connections.end(); itr++){
+            addr_t addr = init_addr(itr->port);
+            addr.size_addr = sizeof(addr.their_addr);
+            log_error(send_to(sockfd, addr, &req, sizeof(int)));
+            log_error(recv_from(sockfd, &addr, &length, sizeof(int)));
         printf("connected to %hu\nlength: %d\n", itr->port, length);
         if (length > count) {
             count = length;
@@ -206,7 +209,7 @@ json recv_blockchain(int sockfd){
     int req = GET;
     char *buff = new char[length+1];
     log_error(send_to(sockfd, addr, &req, sizeof(int)));
-    log_error(recv_from(sockfd, addr, buff, length));
+    log_error(recv_from(sockfd, &addr, buff, length));
     buff[length] = '\0';
     log("done");
     return json::parse(buff);
@@ -215,9 +218,9 @@ json recv_blockchain(int sockfd){
 std::string recv_ports(int sockfd){
     addr_t addr = init_addr(SERVICE_PORT);
     int bytes, ports_size;
-    while((bytes = recv_from(sockfd, addr, &ports_size, sizeof(int))) != -1) {
+    while((bytes = recv_from(sockfd, &addr, &ports_size, sizeof(int))) != -1) {
         char* buff = new char[ports_size+1];
-        log_error(recv_from(sockfd, addr, buff, ports_size));
+        log_error(recv_from(sockfd, &addr, buff, ports_size));
         buff[ports_size] = '\0';
         log("recv ports");
         return buff;
@@ -282,16 +285,19 @@ void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len,
 
 
 std::string recv_block(int sockfd, addr_t *user){
+    log("* recv block...");
     addr_t addr;
     memset(&addr.their_addr, 0, sizeof(addr.their_addr));
     addr.size_addr = sizeof(addr.their_addr);
     int bytes, req, block_size;
-    while((bytes = recv_from(sockfd, addr, &req, sizeof(int))) !=-1) {
+    while((bytes = recv_from(sockfd, &addr, &req, sizeof(int))) !=-1) {
         if ( req == BLOCK ){
-            log_error(recv_from(sockfd, addr, &block_size, sizeof(int)));
+            log_error(recv_from(sockfd, &addr, &block_size, sizeof(int)));
             char* block = new char[block_size];
-            log_error(recv_from(sockfd, addr, block, block_size));
+            log_error(recv_from(sockfd, &addr, block, block_size));
             log("recv block");
+            printf("block[%d]: %s\n", block_size, block);
+
             *user = addr;
             return block;
         }
@@ -305,22 +311,23 @@ std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len_sign) {
     addr.size_addr = sizeof(addr.their_addr);
 
     int bytes, req, size_sign; long key_size;
-    while((bytes = recv_from(sockfd, addr, &req, sizeof(int))) != -1){
+    while((bytes = recv_from(sockfd, &addr, &req, sizeof(int))) != -1){
         if ( req == SIGN ){
-            log_error(recv_from(sockfd, addr, &size_sign, sizeof(int)));
+            log_error(recv_from(sockfd, &addr, &size_sign, sizeof(int)));
             unsigned char* sign = new unsigned char[size_sign];
-            log_error(recv_from(sockfd, addr, sign, size_sign));
+            log_error(recv_from(sockfd, &addr, sign, size_sign));
             log("recv sign");
             
 
-            log_error(recv_from(sockfd, addr, &key_size, sizeof(long)));
+            log_error(recv_from(sockfd, &addr, &key_size, sizeof(long)));
             char* buff = new char[key_size];
-            log_error(recv_from(sockfd, addr, buff, key_size));
+            log_error(recv_from(sockfd, &addr, buff, key_size));
 
             BIO* bio = BIO_new_mem_buf(buff, key_size);
             *len_sign = size_sign;
+            printf("sign[%d]: %s\nkey[%d]:%s\n", size_sign, sign, key_size, buff);
             EVP_PKEY* key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-            log("recv block");
+            log("recv key");
             return std::make_pair(sign, key);
         }
     }
@@ -343,7 +350,7 @@ int commit_block(int sockfd, Block_t block){
         addr = init_addr(i.port);
         log_error(send_to(sockfd, addr, &req, sizeof(int)));
         log_error(send_to(sockfd, addr, bl.c_str(), sizeof(bl)));
-        log_error(recv_from(sockfd, addr, &res, sizeof(int)));
+        log_error(recv_from(sockfd, &addr, &res, sizeof(int)));
         results.push_back(res);
     }
     res = 0;

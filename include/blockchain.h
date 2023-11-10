@@ -33,7 +33,7 @@ using json = nlohmann::json;
 static const int 
     INDENT = 4, 
     SERVICE_PORT = 9000, 
-    MINER_PORT=8000,
+    MINER_PORT   = 8000,
     ADDR_SIZE=11,
     PORT_SIZE=4,
     DIFFICULTY=2;
@@ -98,7 +98,7 @@ int init_socket(port_t port);
 template<typename T>
 int send_to(int sockfd, addr_t addr, T *data, int data_size);
 template<typename T>
-int recv_from(int sockfd, addr_t addr, T *data, int data_size);
+int recv_from(int sockfd, addr_t *addr, T *data, int data_size);
 
 addr_t init_addr(port_t port);
 conn_t convert_addr(std::string addr_str);
