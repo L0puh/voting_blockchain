@@ -4,12 +4,12 @@
 
 int main (int argc, char* argv[]) {
     Block_t b, b2;
-    b = first_block();
-    b2 = init_block(b.header.hash, 1);
-    link_block(b2);
-    json blockchain = get_blockchain();
+    b = Block::first_block();
+    b2 = Block::init_block(b.header.hash, 1);
+    Block::link_block(b2);
+    json blockchain = Block::get_blockchain();
     port_t port = init_port(argc, argv);
-    int sockfd = init_socket(port);
+    int sockfd = Net::init_socket(port);
     if (port >= SERVICE_PORT) service(sockfd);
     else if(port == MINER_PORT) miner(sockfd);
     else node(sockfd, port);

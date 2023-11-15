@@ -42,6 +42,8 @@ static const std::string node_addr =  "198.16.0.0.18";
 static const char separator= '_';
 static json blockchain;
 
+
+
 enum req {
     LENGTH = 0,
     GET,  
@@ -78,6 +80,17 @@ struct conn_t {
     port_t port; 
 };
 
+static std::vector<conn_t> connections;
+port_t init_port(int argc, char* argv[]);
+void log_error(int result);
+void log(std::string message);
+
+uint8_t get_vote();
+int get_port();
+
+void node(int sockfd,  port_t port);
+void miner(int sockfd);
+void service(int sockfd);
 
 class Vote {
     public:
@@ -91,62 +104,54 @@ class Vote {
         static bool verify(std::string block, unsigned char* sign, size_t len, EVP_PKEY* pKey);
 
 };
+namespace Net{
 
-static std::vector<conn_t> connections;
-int init_socket(port_t port);
+    void connect_service(port_t port, int sockfd);
+    std::string recv_ports(int sockfd);
+    void convert_ports(std::string ports);
+    json recv_blockchain(int sockfd);
+    void recv_request(int sockfd);
+    std::string get_ports();
+    int recv_length(int sockfd, addr_t *tr_addr);
+    void create_block(int sockfd, int vote);
+    void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, char* key, long key_len);
+    // service 
+    void accept_connection(int sockfd);
+    int save_port(std::string addr_str);
+    // miner
+    std::string recv_block(int sockfd, addr_t *addr);
+    std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len_sign);
+    Block_t proof_of_work(std::string block);
+    int  commit_block(int sockfd, Block_t block);
+    void send_response(int sockfd, int res, addr_t *addr);
 
-template<typename T>
-int send_to(int sockfd, addr_t addr, T *data, int data_size);
-template<typename T>
-int recv_from(int sockfd, addr_t *addr, T *data, int data_size);
+    int init_socket(port_t port);
+    addr_t init_addr(port_t port);
+    conn_t convert_addr(std::string addr_str);
+    void print_connections();
 
-addr_t init_addr(port_t port);
-conn_t convert_addr(std::string addr_str);
-void print_connections();
-//  node
-void connect_service(port_t port, int sockfd);
-std::string recv_ports(int sockfd);
-void convert_ports(std::string ports);
-json recv_blockchain(int sockfd);
-void recv_request(int sockfd);
-std::string get_ports();
-int recv_length(int sockfd, addr_t *tr_addr);
-void create_block(int sockfd, int vote);
-void send_miner(int sockfd, Block_t block, unsigned char* sign, size_t sign_len, char* key, long key_len);
-// service 
-void accept_connection(int sockfd);
-int save_port(std::string addr_str);
-// miner
-std::string recv_block(int sockfd, addr_t *addr);
-std::pair<unsigned char*, EVP_PKEY*> recv_sign(int sockfd, size_t *len_sign);
-Block_t proof_of_work(std::string block);
-int  commit_block(int sockfd, Block_t block);
-void send_response(int sockfd, int res, addr_t *addr);
-bool check_block(json blchain, json block);
+    template<typename T>
+    int send_to(int sockfd, addr_t addr, T *data, int data_size);
+    template<typename T>
+    int recv_from(int sockfd, addr_t *addr, T *data, int data_size);
+}
+namespace Block {
 
-void log_error(int result);
-void log(std::string message);
-static std::string create_hash(std::string data);
-static std::string get_nonce(std::string blockHash, uint8_t difficulty);
+    std::string block_to_string(Block_t block);
+    json block_to_json(Block_t block);
+    Block_t json_to_block(json bl);
+    uint32_t get_timestamp();
 
-uint8_t get_vote();
-int get_port();
+    void link_block(Block_t block);
+    Block_t first_block();
+    json    get_blockchain();
+    int     get_length();
+    Block_t get_last(json blockchain);
 
-port_t init_port(int argc, char* argv[]);
-Block_t init_block(std::string prev_hash, uint8_t res);
-//block
-std::string block_to_string(Block_t block);
-json block_to_json(Block_t block);
-Block_t json_to_block(json bl);
-uint32_t get_timestamp();
+    static std::string create_hash(std::string data);
+    static std::string get_nonce(std::string blockHash, uint8_t difficulty);
 
-void link_block(Block_t block);
-Block_t first_block();
-json    get_blockchain();
-int     get_length();
-Block_t get_last(json blockchain);
-
-void node(int sockfd,  port_t port);
-void miner(int sockfd);
-void service(int sockfd);
+    Block_t init_block(std::string prev_hash, uint8_t res);
+    bool check_block(json blchain, json block);
+}
 #endif 

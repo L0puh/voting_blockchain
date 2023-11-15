@@ -4,9 +4,9 @@
 
 
 Vote::Vote(json blockchain) {
-    Block_t bl = get_last(blockchain);
+    Block_t bl = Block::get_last(blockchain);
     Block_t block = vote(bl, get_vote());
-    printf("block done:\n%s\n", block_to_string(block).c_str());
+    printf("block done:\n%s\n", Block::block_to_string(block).c_str());
     std::pair<EVP_PKEY*, EVP_PKEY*> k =generate_keys(100);
 
 }
@@ -17,7 +17,7 @@ Block_t Vote::vote(Block_t last_block, uint8_t res){
     Block_t block;
 
     block.header.prev_hash = last_block.header.hash;
-    block.header.timestamp = get_timestamp();
+    block.header.timestamp = Block::get_timestamp();
     block.result = res;
 
     return block;

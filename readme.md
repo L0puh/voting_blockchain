@@ -10,7 +10,3 @@ blockchain for voting using a naive approach.
 sh install.sh
 ```
 
-### todo:
-- [ ] make tests
-- [ ] refactoring 
-
